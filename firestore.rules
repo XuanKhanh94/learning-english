@@ -1,0 +1,146 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Profiles collection
+    match /profiles/{userId} {
+      // Any authenticated user can read profiles (needed for comments)
+      allow read: if request.auth != null;
+      
+      // Users can update their own profile
+      allow write: if request.auth != null && request.auth.uid == userId;
+      
+      // Admins can update all profiles
+      allow write: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Assignments collection
+    match /assignments/{assignmentId} {
+      // Teachers can create and manage their own assignments
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.teacher_id &&
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher';
+      
+      allow update, delete: if request.auth != null && 
+        request.auth.uid == resource.data.teacher_id;
+      
+      // Teachers can read their own assignments
+      allow read: if request.auth != null && 
+        request.auth.uid == resource.data.teacher_id;
+      
+      // Students can read assignments assigned to them (query by student_id)
+      allow read: if request.auth != null &&
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'student';
+      
+      // Admins can read all assignments
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Assignment Students collection
+    match /assignment_students/{docId} {
+      // Teachers can assign students to their assignments
+      allow create, update, delete: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher';
+      
+      // Teachers can list/query assignment students
+      allow list: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher';
+      
+      // Students can read their own assignments
+      allow read: if request.auth != null && 
+        request.auth.uid == resource.data.student_id;
+      
+      // Students can query their own assignments
+      allow list: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'student';
+      
+      // Teachers can read all assignment students
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher';
+      
+      // Admins can read all
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Submissions collection
+    match /submissions/{submissionId} {
+      // Students can create and update their own submissions
+      allow create, update: if request.auth != null && 
+        request.auth.uid == request.resource.data.student_id &&
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'student';
+      
+      // Students can read their own submissions
+      allow read, list: if request.auth != null && 
+        request.auth.uid == resource.data.student_id &&
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'student';
+      
+      // Teachers can read and update submissions for their assignments
+      allow read, update, list: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher';
+      
+      // Admins can read all submissions
+      allow read, list: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Comments collection
+    match /comments/{commentId} {
+      // Authenticated users can create comments
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.user_id;
+      
+      // Read permissions for individual comments
+      allow read: if request.auth != null &&
+        (
+          // Comment author can always read their own comments
+          request.auth.uid == resource.data.user_id ||
+          
+          // Student can read comments on their own submissions
+          (
+            exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+            get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'student' &&
+            exists(/databases/$(database)/documents/submissions/$(resource.data.submission_id)) &&
+            get(/databases/$(database)/documents/submissions/$(resource.data.submission_id)).data.student_id == request.auth.uid
+          ) ||
+          
+          // Teacher can read comments on submissions for their assignments
+          (
+            exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+            get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher' &&
+            exists(/databases/$(database)/documents/submissions/$(resource.data.submission_id)) &&
+            exists(/databases/$(database)/documents/assignments/$(get(/databases/$(database)/documents/submissions/$(resource.data.submission_id)).data.assignment_id)) &&
+            get(/databases/$(database)/documents/assignments/$(get(/databases/$(database)/documents/submissions/$(resource.data.submission_id)).data.assignment_id)).data.teacher_id == request.auth.uid
+          ) ||
+          
+          // Admin can read all comments
+          (
+            exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+            get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin'
+          )
+        );
+      
+      // List queries will use the read rule above for each document
+      // Firestore automatically applies read rules to each document in a query
+      allow list: if request.auth != null;
+      
+      // Only comment author can update/delete their comments
+      allow update, delete: if request.auth != null && 
+        request.auth.uid == resource.data.user_id;
+    }
+  }
+}
