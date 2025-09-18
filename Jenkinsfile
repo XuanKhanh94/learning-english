@@ -39,11 +39,11 @@ pipeline {
                 """
             }
         }
-
+        
         stage('Run New Container') {
             steps {
                 sh """
-                    docker run -d --restart=unless-stopped --name ${CONTAINER_NAME} -p 5173:5173  ${IMAGE_NAME}
+                    docker run -d --restart=unless-stopped --name ${CONTAINER_NAME} --network katin-net -p 5173:5173  ${IMAGE_NAME}
                 """
             }
         }
