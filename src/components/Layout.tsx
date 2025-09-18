@@ -359,7 +359,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
               <BookOpen className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">EduPlatform</h1>
+              <h1 className="text-xl font-bold text-gray-900">Học và học</h1>
               <p className="text-sm text-gray-500">Học trực tuyến</p>
             </div>
           </div>
@@ -475,8 +475,8 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${activeTab === item.id
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-blue-50 text-blue-600'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                   }`}
               >
                 <Icon className="w-5 h-5" />
