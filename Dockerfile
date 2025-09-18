@@ -25,7 +25,7 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Sao chép file cấu hình Nginx để hỗ trợ React Router
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Mở cổng 80 để Nginx phục vụ
+# Mở cổng để Nginx phục vụ
 EXPOSE 5173
 
 # Khởi động Nginx

@@ -1,0 +1,51 @@
+pipeline {
+    agent any
+    environment {
+        CONTAINER_NAME="learning-container"
+        IMAGE_NAME = "learning-image"
+        TAG = "latest"
+        // BUILD_DIR="/mnt/synology/katin-cloud/gym-tracker-vps"
+    }
+    options {
+        skipDefaultCheckout(true)
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                dir("${BUILD_DIR}"){
+                    deleteDir ()
+                    checkout scm
+                }
+            }
+        }
+    stage('Remove Old Image') {
+                steps {
+                    sh """
+                        docker rmi -f ${IMAGE_NAME}|| true
+                    """
+                }
+         }
+
+        stage('Build Docker Image') {
+            steps {
+                sh "docker build -t  ${IMAGE_NAME} ."
+            }
+        }
+
+        stage('Remove Old Container') {
+            steps {
+                sh """
+                    docker rm -f ${CONTAINER_NAME} || true
+                """
+            }
+        }
+
+        stage('Run New Container') {
+            steps {
+                sh """
+                    docker run -d --restart=unless-stopped --name ${CONTAINER_NAME} -p 5173:5173  ${IMAGE_NAME}
+                """
+            }
+        }
+    }
+}
