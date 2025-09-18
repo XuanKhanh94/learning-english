@@ -4,7 +4,7 @@ pipeline {
         CONTAINER_NAME="learning-container"
         IMAGE_NAME = "learning-image"
         TAG = "latest"
-        // BUILD_DIR="/mnt/synology/katin-cloud/gym-tracker-vps"
+        BUILD_DIR="/var/jenkins_home/workspace/Deploy-learning.katin.cloud"
     }
     options {
         skipDefaultCheckout(true)
