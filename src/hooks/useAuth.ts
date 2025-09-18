@@ -22,9 +22,9 @@ export function useAuth() {
 
     // Listen to auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log('🔄 Auth state changed:', user ? `User: ${user.email}` : 'No user');
+      ('🔄 Auth state changed:', user ? `User: ${user.email}` : 'No user');
       setUser(user);
-      
+
       if (user) {
         await fetchProfile(user.uid);
       } else {
@@ -38,15 +38,15 @@ export function useAuth() {
 
   const fetchProfile = async (userId: string) => {
     try {
-      console.log('📋 Fetching profile for user:', userId);
+      ('📋 Fetching profile for user:', userId);
       const profileDoc = await getDoc(doc(db, 'profiles', userId));
-      
+
       if (profileDoc.exists()) {
         const profileData = { id: profileDoc.id, ...profileDoc.data() } as Profile;
-        console.log('✅ Profile found:', profileData);
+        ('✅ Profile found:', profileData);
         setProfile(profileData);
       } else {
-        console.log('❌ Profile not found, creating default profile');
+        ('❌ Profile not found, creating default profile');
         await createDefaultProfile(userId);
       }
     } catch (error) {
@@ -59,13 +59,13 @@ export function useAuth() {
     try {
       const user = auth.currentUser;
       if (!user) return;
-      
+
       // Determine role based on email
       let role: UserRole = 'student'; // default role
       if (user.email === 'xuankhanh379@gmail.com') {
         role = 'admin';
       }
-      
+
       const defaultProfile: Omit<Profile, 'id'> = {
         email: user.email || '',
         full_name: user.displayName || user.email?.split('@')[0] || 'User',
@@ -73,17 +73,17 @@ export function useAuth() {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-      
-      console.log('🔧 Creating profile with role:', role, 'for email:', user.email);
-      
+
+      ('🔧 Creating profile with role:', role, 'for email:', user.email);
+
       await setDoc(doc(db, 'profiles', userId), {
         ...defaultProfile,
         created_at: serverTimestamp(),
         updated_at: serverTimestamp(),
       });
-      
+
       const profileWithId = { id: userId, ...defaultProfile };
-      console.log('✅ Profile created successfully:', profileWithId);
+      ('✅ Profile created successfully:', profileWithId);
       setProfile(profileWithId);
     } catch (error) {
       console.error('💥 Error creating default profile:', error);
@@ -93,17 +93,17 @@ export function useAuth() {
 
   const signIn = async (email: string, password: string) => {
     try {
-      console.log('🔐 Attempting sign-in with:', { email, password: '***' });
-      
+      ('🔐 Attempting sign-in with:', { email, password: '***' });
+
       const result = await signInWithEmailAndPassword(auth, email, password);
-      console.log('✅ Sign-in successful:', result.user.email);
-      
+      ('✅ Sign-in successful:', result.user.email);
+
       return { user: result.user, error: null };
     } catch (error: any) {
       console.error('❌ Sign-in error:', error);
-      
+
       let errorMessage = 'Đã xảy ra lỗi không mong muốn';
-      
+
       switch (error.code) {
         case 'auth/user-not-found':
         case 'auth/wrong-password':
@@ -125,30 +125,30 @@ export function useAuth() {
         default:
           errorMessage = error.message || 'Lỗi đăng nhập không xác định';
       }
-      
+
       return { user: null, error: { message: errorMessage, code: error.code } };
     }
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
     try {
-      console.log('📝 Attempting sign-up with:', { email, fullName });
-      
+      ('📝 Attempting sign-up with:', { email, fullName });
+
       const result = await createUserWithEmailAndPassword(auth, email, password);
-      
+
       // Update display name
       await updateProfile(result.user, {
         displayName: fullName
       });
-      
-      console.log('✅ Sign-up successful:', result.user.email);
-      
+
+      ('✅ Sign-up successful:', result.user.email);
+
       return { user: result.user, error: null };
     } catch (error: any) {
       console.error('❌ Sign-up error:', error);
-      
+
       let errorMessage = 'Đã xảy ra lỗi không mong muốn';
-      
+
       switch (error.code) {
         case 'auth/email-already-in-use':
           errorMessage = 'Email này đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập';
@@ -168,7 +168,7 @@ export function useAuth() {
         default:
           errorMessage = error.message || 'Lỗi đăng ký không xác định';
       }
-      
+
       return { user: null, error: { message: errorMessage, code: error.code } };
     }
   };
@@ -176,7 +176,7 @@ export function useAuth() {
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
-      console.log('✅ Sign-out successful');
+      ('✅ Sign-out successful');
       return { error: null };
     } catch (error: any) {
       console.error('❌ Sign-out error:', error);

@@ -28,7 +28,7 @@ export function StudentSubmissions() {
   const fetchSubmissions = async () => {
     if (!profile) return;
 
-    console.log('🔍 [StudentSubmissions] Fetching submissions for student:', profile.id, profile.email);
+    ('🔍 [StudentSubmissions] Fetching submissions for student:', profile.id, profile.email);
 
     try {
       // Fetch all submissions by this student
@@ -36,42 +36,42 @@ export function StudentSubmissions() {
         collection(db, 'submissions'),
         where('student_id', '==', profile.id)
       );
-      
-      console.log('📋 [StudentSubmissions] Executing query...');
+
+      ('📋 [StudentSubmissions] Executing query...');
       const querySnapshot = await getDocs(q);
-      
-      console.log('📋 [StudentSubmissions] Found submissions:', querySnapshot.docs.length);
-      
+
+      ('📋 [StudentSubmissions] Found submissions:', querySnapshot.docs.length);
+
       if (querySnapshot.docs.length === 0) {
-        console.log('❌ [StudentSubmissions] No submissions found for student:', profile.id);
+        ('❌ [StudentSubmissions] No submissions found for student:', profile.id);
         setSubmissions([]);
         setLoading(false);
         return;
       }
-      
+
       const submissionsData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Submission[];
 
-      console.log('📝 [StudentSubmissions] Submissions data:', submissionsData);
+      ('📝 [StudentSubmissions] Submissions data:', submissionsData);
 
       // Fetch assignment details for each submission
       const enrichedSubmissions = await Promise.all(
         submissionsData.map(async (submission) => {
-          console.log('🔍 [StudentSubmissions] Fetching assignment details for:', submission.assignment_id);
-          
+          ('🔍 [StudentSubmissions] Fetching assignment details for:', submission.assignment_id);
+
           // Fetch assignment details
           try {
             const assignmentDoc = await getDoc(doc(db, 'assignments', submission.assignment_id));
-            const assignment = assignmentDoc.exists() ? 
-              { id: assignmentDoc.id, ...assignmentDoc.data() } as Assignment : 
+            const assignment = assignmentDoc.exists() ?
+              { id: assignmentDoc.id, ...assignmentDoc.data() } as Assignment :
               null;
 
             if (!assignment) {
-              console.log('❌ [StudentSubmissions] Assignment not found:', submission.assignment_id);
+              ('❌ [StudentSubmissions] Assignment not found:', submission.assignment_id);
             } else {
-              console.log('✅ [StudentSubmissions] Assignment found:', assignment.title);
+              ('✅ [StudentSubmissions] Assignment found:', assignment.title);
             }
 
             return {
@@ -90,9 +90,9 @@ export function StudentSubmissions() {
 
       // Filter out submissions where assignment data couldn't be fetched
       const validSubmissions = enrichedSubmissions.filter(item => item.assignment);
-      
-      console.log('🔍 [StudentSubmissions] Valid submissions after filtering:', validSubmissions.length);
-      
+
+      ('🔍 [StudentSubmissions] Valid submissions after filtering:', validSubmissions.length);
+
       // Sort by submitted_at date (newest first)
       validSubmissions.sort((a, b) => {
         const dateA = a.submitted_at ? new Date(a.submitted_at) : new Date(0);
@@ -100,7 +100,7 @@ export function StudentSubmissions() {
         return dateB.getTime() - dateA.getTime();
       });
 
-      console.log('✅ [StudentSubmissions] Final submissions loaded:', validSubmissions.length);
+      ('✅ [StudentSubmissions] Final submissions loaded:', validSubmissions.length);
       setSubmissions(validSubmissions);
     } catch (error) {
       console.error('❌ [StudentSubmissions] Error fetching submissions:', error);
@@ -117,17 +117,17 @@ export function StudentSubmissions() {
         where('submission_id', '==', submissionId)
       );
       const querySnapshot = await getDocs(q);
-      
+
       const commentsData = await Promise.all(
         querySnapshot.docs.map(async (commentDoc) => {
           const commentData = { id: commentDoc.id, ...commentDoc.data() } as Comment;
-          
+
           // Fetch user details
           const userDoc = await getDoc(doc(db, 'profiles', commentData.user_id));
-          const user = userDoc.exists() ? 
-            { id: userDoc.id, ...userDoc.data() } as Profile : 
+          const user = userDoc.exists() ?
+            { id: userDoc.id, ...userDoc.data() } as Profile :
             null;
-          
+
           return { ...commentData, user };
         })
       );
@@ -138,7 +138,7 @@ export function StudentSubmissions() {
         const dateB = b.created_at?.seconds ? new Date(b.created_at.seconds * 1000) : new Date(b.created_at);
         return dateB.getTime() - dateA.getTime();
       });
-      
+
       setComments(prev => ({ ...prev, [submissionId]: commentsData }));
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -253,7 +253,7 @@ export function StudentSubmissions() {
                       {submission.assignment?.title || 'Bài tập không xác định'}
                     </h3>
                   </div>
-                  
+
                   {submission.assignment?.description && (
                     <p className="text-gray-700 mb-4">
                       {submission.assignment.description}
@@ -326,11 +326,10 @@ export function StudentSubmissions() {
                                   <span className="text-sm font-medium text-gray-900">
                                     {comment.user?.full_name || 'Unknown User'}
                                   </span>
-                                  <span className={`text-xs px-2 py-1 rounded-full ${
-                                    comment.user?.role === 'teacher' 
-                                      ? 'bg-blue-100 text-blue-800' 
+                                  <span className={`text-xs px-2 py-1 rounded-full ${comment.user?.role === 'teacher'
+                                      ? 'bg-blue-100 text-blue-800'
                                       : 'bg-green-100 text-green-800'
-                                  }`}>
+                                    }`}>
                                     {comment.user?.role === 'teacher' ? 'Giáo viên' : 'Học sinh'}
                                   </span>
                                 </div>

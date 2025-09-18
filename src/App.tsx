@@ -17,16 +17,7 @@ function App() {
   const { user, profile, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  // Debug logging
-  console.log('🎯 App render state:', { 
-    user: user ? `Present (ID: ${user.id})` : 'Null', 
-    profile: profile ? `${profile.full_name} (${profile.role})` : 'Null',
-    loading,
-    shouldShowAuth: !user || !profile
-  });
-
   if (loading) {
-    console.log('⏳ App showing loading spinner');
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
@@ -35,14 +26,8 @@ function App() {
   }
 
   if (!user || !profile) {
-    console.log('🔐 Showing auth container because:', { 
-      noUser: !user, 
-      noProfile: !profile 
-    });
     return <AuthContainer />;
   }
-
-  console.log('✅ Showing main app for:', profile.full_name);
 
   const renderContent = () => {
     // Admin routes
@@ -274,7 +259,7 @@ function TeacherDashboard({ onTabChange }: { onTabChange?: (tab: string) => void
           </div>
         </div>
 
-        <div 
+        <div
           className="bg-white p-6 rounded-lg shadow cursor-pointer hover:shadow-lg transition-shadow"
           onClick={handlePendingClick}
         >
@@ -336,7 +321,7 @@ function StudentDashboard() {
 
       // Calculate average grade
       const gradedSubmissions = submissions.filter(sub => sub.grade !== undefined && sub.grade !== null);
-      const averageGrade = gradedSubmissions.length > 0 
+      const averageGrade = gradedSubmissions.length > 0
         ? gradedSubmissions.reduce((sum, sub) => sum + sub.grade, 0) / gradedSubmissions.length
         : 0;
 

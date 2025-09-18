@@ -18,9 +18,9 @@ export function SignUpForm({ onSwitchToLogin }: SignUpFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    console.log('SignUp form data:', { email, fullName, password: '***' });
-    
+
+    ('SignUp form data:', { email, fullName, password: '***' });
+
     // Validation
     if (password !== confirmPassword) {
       setError('Mật khẩu xác nhận không khớp');
@@ -37,15 +37,15 @@ export function SignUpForm({ onSwitchToLogin }: SignUpFormProps) {
       setError(authError);
       return;
     }
-    
+
     setLoading(true);
     setError('');
     setSuccess(false);
 
     try {
-      console.log('Calling signUp function...');
+      ('Calling signUp function...');
       const { error } = await signUp(email, password, fullName);
-      
+
       if (error) {
         console.error('SignUp error details:', error);
         if (error.name === 'NetworkError' || error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
@@ -60,7 +60,7 @@ export function SignUpForm({ onSwitchToLogin }: SignUpFormProps) {
           setError(`Lỗi đăng ký: ${error.message || 'Không xác định'}`);
         }
       } else {
-        console.log('SignUp successful');
+        ('SignUp successful');
         setSuccess(true);
         // Reset form
         setEmail('');

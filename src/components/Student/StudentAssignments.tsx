@@ -20,7 +20,7 @@ export function StudentAssignments() {
   const fetchAssignments = async () => {
     if (!profile) return;
 
-    console.log('🔍 Fetching assignments for student:', profile.id, profile.email);
+    ('🔍 Fetching assignments for student:', profile.id, profile.email);
 
     try {
       // Fetch assignments assigned to this student
@@ -29,16 +29,16 @@ export function StudentAssignments() {
         where('student_id', '==', profile.id),
       );
       const querySnapshot = await getDocs(q);
-      
-      console.log('📋 Found assignment_students records:', querySnapshot.docs.length);
-      
+
+      ('📋 Found assignment_students records:', querySnapshot.docs.length);
+
       const assignmentStudents = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as AssignmentStudent[];
 
       if (assignmentStudents.length === 0) {
-        console.log('❌ No assignments found for student:', profile.id);
+        ('❌ No assignments found for student:', profile.id);
         setAssignments([]);
         return;
       }
@@ -46,18 +46,18 @@ export function StudentAssignments() {
       // Fetch assignment details and submissions
       const enrichedAssignments = await Promise.all(
         assignmentStudents.map(async (assignmentStudent) => {
-          console.log('🔍 Fetching assignment details for:', assignmentStudent.assignment_id);
-          
+          ('🔍 Fetching assignment details for:', assignmentStudent.assignment_id);
+
           // Fetch assignment details
           const assignmentDoc = await getDoc(doc(db, 'assignments', assignmentStudent.assignment_id));
-          const assignment = assignmentDoc.exists() ? 
-            { id: assignmentDoc.id, ...assignmentDoc.data() } as Assignment : 
+          const assignment = assignmentDoc.exists() ?
+            { id: assignmentDoc.id, ...assignmentDoc.data() } as Assignment :
             null;
 
           if (!assignment) {
-            console.log('❌ Assignment not found:', assignmentStudent.assignment_id);
+            ('❌ Assignment not found:', assignmentStudent.assignment_id);
           } else {
-            console.log('✅ Assignment found:', assignment.title);
+            ('✅ Assignment found:', assignment.title);
           }
 
           // Fetch submission if exists
@@ -67,11 +67,11 @@ export function StudentAssignments() {
             where('student_id', '==', profile.id)
           );
           const submissionSnapshot = await getDocs(submissionQuery);
-          const submission = submissionSnapshot.docs[0] ? 
+          const submission = submissionSnapshot.docs[0] ?
             { id: submissionSnapshot.docs[0].id, ...submissionSnapshot.docs[0].data() } as Submission :
             null;
 
-          console.log('📝 Submission status:', submission ? submission.status : 'No submission');
+          ('📝 Submission status:', submission ? submission.status : 'No submission');
 
           return {
             ...assignmentStudent,
@@ -83,7 +83,7 @@ export function StudentAssignments() {
 
       // Filter out assignments where assignment data couldn't be fetched
       const validAssignments = enrichedAssignments.filter(item => item.assignment);
-      
+
       // Sort by assigned_at date
       validAssignments.sort((a, b) => {
         const dateA = new Date(a.assigned_at);
@@ -91,7 +91,7 @@ export function StudentAssignments() {
         return dateB.getTime() - dateA.getTime();
       });
 
-      console.log('✅ Final assignments loaded:', validAssignments.length);
+      ('✅ Final assignments loaded:', validAssignments.length);
       setAssignments(validAssignments);
     } catch (error) {
       console.error('Error fetching assignments:', error);
@@ -126,11 +126,11 @@ export function StudentAssignments() {
 
     try {
       // Upload file to Cloudinary
-      console.log('Uploading student submission to Cloudinary:', file.name, 'Size:', file.size);
+      ('Uploading student submission to Cloudinary:', file.name, 'Size:', file.size);
       const uploadResult = await uploadToCloudinary(file, `submissions/${profile.id}/${assignmentId}`);
 
       // Create submission record in Firebase Firestore
-      console.log('Saving submission to Firebase Firestore');
+      ('Saving submission to Firebase Firestore');
       await addDoc(collection(db, 'submissions'), {
         assignment_id: assignmentId,
         student_id: profile.id,
@@ -140,7 +140,7 @@ export function StudentAssignments() {
         submitted_at: serverTimestamp(),
       });
 
-      console.log('Submission saved successfully - File:', uploadResult.secure_url, 'Record: Firestore');
+      ('Submission saved successfully - File:', uploadResult.secure_url, 'Record: Firestore');
 
       // Refresh assignments
       await fetchAssignments();
@@ -231,7 +231,7 @@ export function StudentAssignments() {
                       {assignment.assignment?.title}
                     </h3>
                   </div>
-                  
+
                   {assignment.assignment?.description && (
                     <p className="text-gray-700 mb-4">
                       {assignment.assignment.description}
@@ -253,13 +253,12 @@ export function StudentAssignments() {
 
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-sm font-medium">Trạng thái:</span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      assignment.submission?.status === 'graded' 
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${assignment.submission?.status === 'graded'
                         ? 'bg-blue-100 text-blue-800'
                         : assignment.submission?.status === 'submitted'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}>
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}>
                       {getStatusText(assignment)}
                     </span>
                   </div>
@@ -284,9 +283,8 @@ export function StudentAssignments() {
                   )}
 
                   {!assignment.submission && (
-                    <label className={`flex items-center gap-2 px-3 py-2 text-sm text-white bg-green-500 hover:bg-green-600 rounded-lg cursor-pointer transition-colors ${
-                      uploading === assignment.assignment_id ? 'opacity-50' : ''
-                    }`}>
+                    <label className={`flex items-center gap-2 px-3 py-2 text-sm text-white bg-green-500 hover:bg-green-600 rounded-lg cursor-pointer transition-colors ${uploading === assignment.assignment_id ? 'opacity-50' : ''
+                      }`}>
                       <Upload className="w-4 h-4" />
                       {uploading === assignment.assignment_id ? 'Đang tải...' : 'Nộp bài'}
                       <input

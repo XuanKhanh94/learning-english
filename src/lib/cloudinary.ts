@@ -5,7 +5,7 @@ export const CLOUDINARY_CONFIG = {
 };
 
 // Debug logging
-console.log('Cloudinary Config:', {
+('Cloudinary Config:', {
   cloudName: CLOUDINARY_CONFIG.cloudName ? 'Present' : 'Missing',
   uploadPreset: CLOUDINARY_CONFIG.uploadPreset ? 'Present' : 'Missing',
   note: 'Files will be stored in Cloudinary, user data in Firebase'
@@ -38,14 +38,14 @@ export const uploadToCloudinary = async (
   formData.append('file', file);
   formData.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
   formData.append('folder', folder);
-  
+
   // Add timestamp to filename to avoid conflicts
   const timestamp = Date.now();
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
   formData.append('public_id', `${timestamp}_${sanitizedName}`);
 
   try {
-    console.log('Uploading to Cloudinary:', {
+    ('Uploading to Cloudinary:', {
       fileName: file.name,
       size: file.size,
       folder,
@@ -68,8 +68,8 @@ export const uploadToCloudinary = async (
     }
 
     const result = await response.json();
-    console.log('File uploaded to Cloudinary successfully:', result.secure_url);
-    
+    ('File uploaded to Cloudinary successfully:', result.secure_url);
+
     return result;
   } catch (error) {
     console.error('Error uploading file to Cloudinary:', error);
@@ -80,5 +80,5 @@ export const uploadToCloudinary = async (
 export const deleteFromCloudinary = async (publicId: string): Promise<void> => {
   // Note: Deleting from Cloudinary requires server-side implementation
   // with API secret. This is just a placeholder for future implementation.
-  console.log('Delete from Cloudinary (requires server-side):', publicId);
+  ('Delete from Cloudinary (requires server-side):', publicId);
 };

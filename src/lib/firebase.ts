@@ -13,7 +13,7 @@ const firebaseConfig = {
 };
 
 // Debug logging
-console.log('Firebase Config:', {
+('Firebase Config:', {
   apiKey: firebaseConfig.apiKey ? 'Present' : 'Missing',
   authDomain: firebaseConfig.authDomain ? 'Present' : 'Missing',
   projectId: firebaseConfig.projectId ? 'Present' : 'Missing',
@@ -49,9 +49,9 @@ if (import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATOR === 'true'
     connectAuthEmulator(auth, 'http://localhost:9099');
     connectFirestoreEmulator(db, 'localhost', 8080);
     connectStorageEmulator(storage, 'localhost', 9199);
-    console.log('🔧 Connected to Firebase emulators');
+    ('🔧 Connected to Firebase emulators');
   } catch (error) {
-    console.log('Firebase emulators not available or already connected');
+    ('Firebase emulators not available or already connected');
   }
 }
 

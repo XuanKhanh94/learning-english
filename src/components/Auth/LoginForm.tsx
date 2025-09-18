@@ -15,7 +15,7 @@ export function LoginForm({ onSwitchToSignUp }: LoginFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form inputs
     if (!email.trim() || !password.trim()) {
       setError('Vui lòng nhập đầy đủ email và mật khẩu');
@@ -27,16 +27,16 @@ export function LoginForm({ onSwitchToSignUp }: LoginFormProps) {
       setError(authError);
       return;
     }
-    
+
     setLoading(true);
     setError('');
 
     try {
-      console.log('Submitting login form...');
+      ('Submitting login form...');
       const { error } = await signIn(email, password);
-      
+
       if (error) {
-        console.log('Login error details:', error);
+        ('Login error details:', error);
         if (error.name === 'NetworkError' || error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
           setError('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng và thử lại sau.');
         } else if (error.message.includes('Invalid login credentials')) {
@@ -45,7 +45,7 @@ export function LoginForm({ onSwitchToSignUp }: LoginFormProps) {
           setError(`Lỗi đăng nhập: ${error.message || 'Không xác định'}`);
         }
       } else {
-        console.log('Login successful, no error');
+        ('Login successful, no error');
       }
     } catch (err) {
       console.error('Unexpected error:', err);

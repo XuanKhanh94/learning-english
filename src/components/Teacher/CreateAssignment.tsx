@@ -26,22 +26,22 @@ export function CreateAssignment() {
     setLoadingStudents(true);
     setError('');
     try {
-      console.log('Fetching students...');
+      ('Fetching students...');
       const q = query(
-        collection(db, 'profiles'), 
+        collection(db, 'profiles'),
         where('role', '==', 'student')
       );
       const querySnapshot = await getDocs(q);
-      
+
       const studentsData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Profile[];
-      
+
       // Sort students by full_name on the client side
       studentsData.sort((a, b) => a.full_name.localeCompare(b.full_name));
-      
-      console.log('Students fetched:', studentsData.length);
+
+      ('Students fetched:', studentsData.length);
       setStudents(studentsData);
     } catch (error) {
       console.error('Error fetching students:', error);
@@ -65,13 +65,13 @@ export function CreateAssignment() {
       let fileName = null;
 
       if (file) {
-        console.log('Uploading assignment file to Cloudinary:', file.name, 'Size:', file.size);
-        
+        ('Uploading assignment file to Cloudinary:', file.name, 'Size:', file.size);
+
         const uploadResult = await uploadToCloudinary(file, `assignments/${profile.id}`);
         fileUrl = uploadResult.secure_url;
         fileName = file.name;
-        
-        console.log('Assignment file uploaded to Cloudinary:', fileUrl);
+
+        ('Assignment file uploaded to Cloudinary:', fileUrl);
       }
 
       // Create assignment
@@ -85,12 +85,12 @@ export function CreateAssignment() {
         created_at: serverTimestamp(),
       };
 
-      console.log('Saving assignment to Firebase Firestore:', assignmentData);
+      ('Saving assignment to Firebase Firestore:', assignmentData);
       const assignmentRef = await addDoc(collection(db, 'assignments'), assignmentData);
 
       // Assign to selected students
       if (selectedStudents.length > 0) {
-        console.log('📝 Assigning to students:', selectedStudents);
+        ('📝 Assigning to students:', selectedStudents);
         const assignmentStudents = selectedStudents.map(studentId => ({
           assignment_id: assignmentRef.id,
           student_id: studentId,
@@ -99,12 +99,12 @@ export function CreateAssignment() {
 
         // Add each assignment-student relationship
         for (const assignmentStudent of assignmentStudents) {
-          console.log('💾 Creating assignment-student relationship:', assignmentStudent);
+          ('💾 Creating assignment-student relationship:', assignmentStudent);
           await addDoc(collection(db, 'assignment_students'), assignmentStudent);
         }
-        console.log('Assignment-student relationships saved to Firestore');
+        ('Assignment-student relationships saved to Firestore');
       } else {
-        console.log('⚠️ No students selected for assignment');
+        ('⚠️ No students selected for assignment');
       }
 
       setSuccess(true);
@@ -127,7 +127,7 @@ export function CreateAssignment() {
   };
 
   const handleStudentToggle = (studentId: string) => {
-    setSelectedStudents(prev => 
+    setSelectedStudents(prev =>
       prev.includes(studentId)
         ? prev.filter(id => id !== studentId)
         : [...prev, studentId]
@@ -153,7 +153,7 @@ export function CreateAssignment() {
             <FileText className="w-5 h-5" />
             Thông tin bài tập
           </h2>
-          
+
           <div className="space-y-4">
             <div>
               <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
@@ -225,17 +225,17 @@ export function CreateAssignment() {
             <Users className="w-5 h-5" />
             Gán cho học sinh
           </h2>
-          
+
           {error && (
             <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
               {error}
             </div>
           )}
-          
+
           {error && (
             <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
               {error}
-              <button 
+              <button
                 onClick={fetchStudents}
                 className="ml-2 underline hover:no-underline"
               >
@@ -281,7 +281,7 @@ export function CreateAssignment() {
               ))}
             </div>
           )}
-          
+
           {selectedStudents.length > 0 && (
             <p className="mt-3 text-sm text-blue-600">
               Đã chọn {selectedStudents.length} học sinh

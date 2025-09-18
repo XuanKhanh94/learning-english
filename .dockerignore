@@ -1,0 +1,33 @@
+# Node modules & build outputs
+node_modules
+.next
+dist
+out
+build
+
+# Logs & OS files
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+pnpm-debug.log
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+
+# Env files
+# .env
+.env.*
+firebase-secrets.env
+
+# Editor/IDE
+.vscode
+.idea
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Other development files
+*.md
