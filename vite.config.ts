@@ -7,28 +7,18 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks(id: string) {
-          // Tách React + React DOM ra chunk riêng
-          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
-            return 'vendor';
-          }
-          // Tách lucide-react ra chunk riêng
-          if (id.includes('node_modules/lucide-react')) {
-            return 'ui';
-          }
-          // Các node_modules khác gom chung chunk 'lib'
-          if (id.includes('node_modules')) {
-            return 'lib';
-          }
-          // Các file khác để theo chunk mặc định
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          firebase: ['firebase/firestore', 'firebase/auth'],
+          ui: ['lucide-react']
         }
       }
     },
     chunkSizeWarningLimit: 1000
   },
   optimizeDeps: {
-    include: ['react', 'react-dom'],
-    exclude: ['lucide-react'] // lucide-react sẽ được xử lý qua manualChunks
+    include: ['react', 'react-dom'],  // ✅ đặt đúng chỗ
+    exclude: ['lucide-react']
   },
   server: {
     hmr: {
