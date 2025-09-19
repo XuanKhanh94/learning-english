@@ -40,7 +40,7 @@ function App() {
         case 'settings':
           return <div>Cài đặt hệ thống</div>;
         default:
-          return <AdminDashboard />;
+          return <UserManagement />;
       }
     }
 
@@ -79,72 +79,6 @@ function App() {
     <Layout activeTab={activeTab} onTabChange={setActiveTab}>
       {renderContent()}
     </Layout>
-  );
-}
-
-// Dashboard Components
-function AdminDashboard() {
-  return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Bảng điều khiển Admin</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <Users className="h-8 w-8 text-blue-600" />
-            </div>
-            <div className="ml-5 w-0 flex-1">
-              <dl>
-                <dt className="text-sm font-medium text-gray-500 truncate">Tổng người dùng</dt>
-                <dd className="text-lg font-medium text-gray-900">156</dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <BookOpen className="h-8 w-8 text-green-600" />
-            </div>
-            <div className="ml-5 w-0 flex-1">
-              <dl>
-                <dt className="text-sm font-medium text-gray-500 truncate">Tổng bài tập</dt>
-                <dd className="text-lg font-medium text-gray-900">89</dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <FileText className="h-8 w-8 text-yellow-600" />
-            </div>
-            <div className="ml-5 w-0 flex-1">
-              <dl>
-                <dt className="text-sm font-medium text-gray-500 truncate">Bài nộp hôm nay</dt>
-                <dd className="text-lg font-medium text-gray-900">23</dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <TrendingUp className="h-8 w-8 text-purple-600" />
-            </div>
-            <div className="ml-5 w-0 flex-1">
-              <dl>
-                <dt className="text-sm font-medium text-gray-500 truncate">Hoạt động</dt>
-                <dd className="text-lg font-medium text-gray-900">95%</dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 

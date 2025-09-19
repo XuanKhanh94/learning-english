@@ -307,7 +307,6 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
       case 'admin':
         return [
           { id: 'users', label: 'Quản lý người dùng', icon: Users },
-          { id: 'assignments', label: 'Tất cả bài tập', icon: FileText },
           { id: 'settings', label: 'Cài đặt', icon: Settings },
         ];
       case 'teacher':

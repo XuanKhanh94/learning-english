@@ -31,14 +31,14 @@ export function UserManagement() {
     try {
       const q = query(collection(db, 'profiles'), orderBy('created_at', 'desc'));
       const querySnapshot = await getDocs(q);
-      
+
       const usersData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         created_at: doc.data().created_at?.toDate?.()?.toISOString() || doc.data().created_at,
         updated_at: doc.data().updated_at?.toDate?.()?.toISOString() || doc.data().updated_at,
       })) as Profile[];
-      
+
       setUsers(usersData);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -53,7 +53,7 @@ export function UserManagement() {
 
     // Filter by search term
     if (searchTerm) {
-      filtered = filtered.filter(user => 
+      filtered = filtered.filter(user =>
         user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -74,11 +74,11 @@ export function UserManagement() {
         role: newRole,
         updated_at: new Date(),
       });
-      
-      setUsers(users.map(user => 
+
+      setUsers(users.map(user =>
         user.id === userId ? { ...user, role: newRole } : user
       ));
-      
+
       showMessage('success', `Đã cập nhật vai trò thành ${getRoleLabel(newRole)}`);
     } catch (error) {
       console.error('Error updating user role:', error);
@@ -94,11 +94,11 @@ export function UserManagement() {
     try {
       // Xóa từ Firestore
       await deleteDoc(doc(db, 'profiles', userId));
-      
+
       // Xóa từ Firebase Auth (chỉ admin có thể làm điều này)
       // Lưu ý: Trong thực tế, việc xóa user từ Auth cần Firebase Admin SDK
       // Ở đây chúng ta chỉ xóa profile từ Firestore
-      
+
       setUsers(users.filter(user => user.id !== userId));
       showMessage('success', 'Đã xóa profile người dùng (Auth account vẫn tồn tại)');
     } catch (error) {
@@ -142,7 +142,7 @@ export function UserManagement() {
 
   const handleRoleUpdate = async (newRole: UserRole) => {
     if (!selectedUser) return;
-    
+
     await updateUserRole(selectedUser.id, newRole);
     closeEditModal();
   };
@@ -167,11 +167,10 @@ export function UserManagement() {
 
       {/* Message */}
       {message && (
-        <div className={`mb-4 p-4 rounded-lg flex items-center gap-2 ${
-          message.type === 'success' 
-            ? 'bg-green-50 text-green-700 border border-green-200' 
+        <div className={`mb-4 p-4 rounded-lg flex items-center gap-2 ${message.type === 'success'
+            ? 'bg-green-50 text-green-700 border border-green-200'
             : 'bg-red-50 text-red-700 border border-red-200'
-        }`}>
+          }`}>
           {message.type === 'success' ? (
             <CheckCircle className="w-5 h-5" />
           ) : (
@@ -271,7 +270,7 @@ export function UserManagement() {
                   >
                     <Edit className="w-4 h-4" />
                   </button>
-                  <button 
+                  <button
                     onClick={() => deleteUser(user.id)}
                     className="text-red-600 hover:text-red-900"
                     title="Xóa người dùng"
@@ -289,7 +288,7 @@ export function UserManagement() {
             <User className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">Không tìm thấy người dùng</h3>
             <p className="mt-1 text-sm text-gray-500">
-              {searchTerm || roleFilter !== 'all' 
+              {searchTerm || roleFilter !== 'all'
                 ? 'Thử thay đổi bộ lọc để xem kết quả khác'
                 : 'Chưa có người dùng nào trong hệ thống'
               }
@@ -380,7 +379,7 @@ export function UserManagement() {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Thay đổi vai trò
             </h3>
-            
+
             <div className="mb-4">
               <p className="text-sm text-gray-600 mb-2">Người dùng:</p>
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
@@ -402,11 +401,10 @@ export function UserManagement() {
                     key={role}
                     onClick={() => handleRoleUpdate(role)}
                     disabled={updating || selectedUser.role === role}
-                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
-                      selectedUser.role === role
+                    className={`w-full text-left p-3 rounded-lg border transition-colors ${selectedUser.role === role
                         ? 'bg-gray-100 border-gray-300 cursor-not-allowed'
                         : 'hover:bg-gray-50 border-gray-200'
-                    } ${updating ? 'opacity-50' : ''}`}
+                      } ${updating ? 'opacity-50' : ''}`}
                   >
                     <div className="flex items-center justify-between">
                       <span className="font-medium">{getRoleLabel(role)}</span>
