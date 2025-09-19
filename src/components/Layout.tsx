@@ -1,5 +1,4 @@
-import React from 'react';
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { collection, query, where, onSnapshot, doc, getDoc, getDocs, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db, Comment, Profile } from '../lib/firebase';
 import { useAuth } from '../hooks/useAuth';
@@ -23,7 +22,61 @@ interface LayoutProps {
   onTabChange: (tab: string) => void;
 }
 
-export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
+// Memoized notification item component
+const NotificationItem = React.memo(({ notification }: { notification: Comment }) => (
+  <div className="p-3 border-b last:border-b-0 hover:bg-gray-50">
+    <div className="flex items-start gap-2">
+      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+        <User className="w-3 h-3 text-blue-600" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900">
+          {notification.user?.full_name || 'Unknown User'}
+        </p>
+        <p className="text-xs text-gray-500 truncate">
+          {notification.content}
+        </p>
+        <p className="text-xs text-gray-400 mt-1">
+          {notification.created_at?.seconds
+            ? new Date(notification.created_at.seconds * 1000).toLocaleString('vi-VN')
+            : 'Vừa xong'
+          }
+        </p>
+      </div>
+    </div>
+  </div>
+));
+
+NotificationItem.displayName = 'NotificationItem';
+
+// Memoized menu item component
+const MenuItem = React.memo(({
+  item,
+  isActive,
+  onClick
+}: {
+  item: { id: string; label: string; icon: any },
+  isActive: boolean,
+  onClick: () => void
+}) => {
+  const Icon = item.icon;
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${isActive
+          ? 'bg-blue-50 text-blue-600'
+          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+        }`}
+    >
+      <Icon className="w-5 h-5" />
+      {item.label}
+    </button>
+  );
+});
+
+MenuItem.displayName = 'MenuItem';
+
+export const Layout = React.memo(function Layout({ children, activeTab, onTabChange }: LayoutProps) {
   const { profile, signOut } = useAuth();
   const [notifications, setNotifications] = useState<Comment[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -33,274 +86,8 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
-        setShowNotifications(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Load last read time from profile
-  useEffect(() => {
-    if (profile) {
-      const savedLastReadTime = profile.last_notification_read_at;
-      if (savedLastReadTime) {
-        setLastReadTime(new Date(savedLastReadTime));
-      }
-    }
-  }, [profile]);
-  // Listen for new comments
-  useEffect(() => {
-    if (!profile) return;
-
-    let unsubscribe: (() => void) | undefined;
-
-    const setupCommentListener = async () => {
-      try {
-
-        if (profile.role === 'student') {
-          // For students: listen to comments on their submissions
-          const submissionsQuery = query(
-            collection(db, 'submissions'),
-            where('student_id', '==', profile.id)
-          );
-
-          // Get submission IDs first
-          const submissionsSnapshot = await getDocs(submissionsQuery);
-          const submissionIds = submissionsSnapshot.docs.map(doc => doc.id);
-
-          if (submissionIds.length > 0) {
-            // Process submissions in batches of 10 (Firestore 'in' limit)
-            const batches = [];
-            for (let i = 0; i < submissionIds.length; i += 10) {
-              batches.push(submissionIds.slice(i, i + 10));
-            }
-
-            // Set up listeners for all batches
-            const unsubscribes: (() => void)[] = [];
-
-            for (const batch of batches) {
-              const commentsQuery = query(
-                collection(db, 'comments'),
-                where('submission_id', 'in', batch)
-              );
-
-              const batchUnsubscribe = onSnapshot(commentsQuery, async (snapshot) => {
-
-                const comments = await Promise.all(
-                  snapshot.docs.map(async (commentDoc) => {
-                    const commentData = { id: commentDoc.id, ...commentDoc.data() } as Comment;
-
-                    // Skip own comments
-                    if (commentData.user_id === profile.id) return null;
-
-                    // Fetch user details
-                    const userDoc = await getDoc(doc(db, 'profiles', commentData.user_id));
-                    const user = userDoc.exists() ?
-                      { id: userDoc.id, ...userDoc.data() } as Profile :
-                      null;
-
-                    return { ...commentData, user };
-                  })
-                );
-
-                const validComments = comments.filter(c => c !== null) as Comment[];
-
-                // Merge with existing notifications from other batches
-                setNotifications(prevNotifications => {
-                  // Remove old comments from this batch and add new ones
-                  const otherComments = prevNotifications.filter(notif =>
-                    !batch.includes(notif.submission_id)
-                  );
-                  const allComments = [...otherComments, ...validComments];
-
-                  // Sort by newest first and limit to 10
-                  allComments.sort((a, b) => {
-                    const dateA = a.created_at?.seconds ? new Date(a.created_at.seconds * 1000) : new Date(a.created_at);
-                    const dateB = b.created_at?.seconds ? new Date(b.created_at.seconds * 1000) : new Date(b.created_at);
-                    return dateB.getTime() - dateA.getTime();
-                  });
-
-                  const finalComments = allComments.slice(0, 10);
-
-                  // Count unread notifications (after last read time)
-                  if (lastReadTime) {
-                    const unreadComments = finalComments.filter(comment => {
-                      const commentDate = comment.created_at?.seconds
-                        ? new Date(comment.created_at.seconds * 1000)
-                        : new Date(comment.created_at);
-                      return commentDate > lastReadTime;
-                    });
-                    setUnreadCount(unreadComments.length);
-                  } else {
-                    setUnreadCount(finalComments.length);
-                  }
-
-                  return finalComments;
-                });
-              });
-
-              unsubscribes.push(batchUnsubscribe);
-            }
-
-            // Return cleanup function for all listeners
-            unsubscribe = () => {
-              unsubscribes.forEach(unsub => unsub());
-            };
-          }
-        } else if (profile.role === 'teacher') {
-          // For teachers: listen to comments on submissions for their assignments
-          const assignmentsQuery = query(
-            collection(db, 'assignments'),
-            where('teacher_id', '==', profile.id)
-          );
-
-          const assignmentsSnapshot = await getDocs(assignmentsQuery);
-          const assignmentIds = assignmentsSnapshot.docs.map(doc => doc.id);
-
-          if (assignmentIds.length > 0) {
-            // Get submissions for teacher's assignments
-            const allSubmissionIds: string[] = [];
-            for (const assignmentId of assignmentIds) {
-              const submissionsQuery = query(
-                collection(db, 'submissions'),
-                where('assignment_id', '==', assignmentId)
-              );
-              const submissionsSnapshot = await getDocs(submissionsQuery);
-              allSubmissionIds.push(...submissionsSnapshot.docs.map(doc => doc.id));
-            }
-
-            if (allSubmissionIds.length > 0) {
-              // Process submissions in batches of 10 (Firestore 'in' limit)
-              const batches = [];
-              for (let i = 0; i < allSubmissionIds.length; i += 10) {
-                batches.push(allSubmissionIds.slice(i, i + 10));
-              }
-
-              // Set up listeners for all batches
-              const unsubscribes: (() => void)[] = [];
-
-              for (const batch of batches) {
-                const commentsQuery = query(
-                  collection(db, 'comments'),
-                  where('submission_id', 'in', batch)
-                );
-
-                const batchUnsubscribe = onSnapshot(commentsQuery, async (snapshot) => {
-
-                  const comments = await Promise.all(
-                    snapshot.docs.map(async (commentDoc) => {
-                      const commentData = { id: commentDoc.id, ...commentDoc.data() } as Comment;
-
-                      // Skip own comments
-                      if (commentData.user_id === profile.id) return null;
-
-                      // Fetch user details
-                      const userDoc = await getDoc(doc(db, 'profiles', commentData.user_id));
-                      const user = userDoc.exists() ?
-                        { id: userDoc.id, ...userDoc.data() } as Profile :
-                        null;
-
-                      return { ...commentData, user };
-                    })
-                  );
-
-                  const validComments = comments.filter(c => c !== null) as Comment[];
-
-                  // Merge with existing notifications from other batches
-                  setNotifications(prevNotifications => {
-                    // Remove old comments from this batch and add new ones
-                    const otherComments = prevNotifications.filter(notif =>
-                      !batch.includes(notif.submission_id)
-                    );
-                    const allComments = [...otherComments, ...validComments];
-
-                    // Sort by newest first and limit to 10
-                    allComments.sort((a, b) => {
-                      const dateA = a.created_at?.seconds ? new Date(a.created_at.seconds * 1000) : new Date(a.created_at);
-                      const dateB = b.created_at?.seconds ? new Date(b.created_at.seconds * 1000) : new Date(b.created_at);
-                      return dateB.getTime() - dateA.getTime();
-                    });
-
-                    const finalComments = allComments.slice(0, 10);
-
-                    // Count unread notifications (after last read time)
-                    let newUnreadCount = 0;
-                    if (lastReadTime) {
-                      const unreadComments = finalComments.filter(comment => {
-                        const commentDate = comment.created_at?.seconds
-                          ? new Date(comment.created_at.seconds * 1000)
-                          : new Date(comment.created_at);
-                        return commentDate > lastReadTime;
-                      });
-                      newUnreadCount = unreadComments.length;
-                    } else {
-                      newUnreadCount = finalComments.length;
-                    }
-
-                    // Update unread count outside of setNotifications
-                    setTimeout(() => setUnreadCount(newUnreadCount), 0);
-
-                    // Update unread count outside of setNotifications
-                    setTimeout(() => setUnreadCount(newUnreadCount), 0);
-
-                    return finalComments;
-                  });
-                });
-
-                unsubscribes.push(batchUnsubscribe);
-              }
-
-              // Return cleanup function for all listeners
-              unsubscribe = () => {
-                unsubscribes.forEach(unsub => unsub());
-              };
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error setting up comment listener:', error);
-      }
-    };
-
-    setupCommentListener();
-
-    return () => {
-      if (unsubscribe) {
-        unsubscribe();
-      }
-    };
-  }, [profile, lastReadTime]);
-
-  const markAllAsRead = async () => {
-    if (!profile) return;
-
-    const now = new Date();
-
-    try {
-      // Update profile with last read time
-      await updateDoc(doc(db, 'profiles', profile.id), {
-        last_notification_read_at: serverTimestamp(),
-        updated_at: serverTimestamp(),
-      });
-
-      setLastReadTime(now);
-      setUnreadCount(0);
-    } catch (error) {
-      console.error('Error updating last read time:', error);
-    }
-    setShowNotifications(false);
-  };
-
-  const getMenuItems = () => {
+  // Memoize menu items to prevent recalculation
+  const menuItems = useMemo(() => {
     if (!profile) return [];
 
     switch (profile.role) {
@@ -325,22 +112,279 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
       default:
         return [];
     }
-  };
+  }, [profile?.role]);
 
-  const menuItems = getMenuItems();
-
-  const handleSignOut = async () => {
-    await signOut();
-  };
-
-  const getRoleLabel = () => {
+  // Memoize role label
+  const roleLabel = useMemo(() => {
     switch (profile?.role) {
       case 'admin': return 'Quản trị viên';
       case 'teacher': return 'Giáo viên';
       case 'student': return 'Học sinh';
       default: return '';
     }
-  };
+  }, [profile?.role]);
+
+  // Memoize callbacks to prevent unnecessary re-renders
+  const handleSignOut = useCallback(async () => {
+    await signOut();
+  }, [signOut]);
+
+  const handleTabChange = useCallback((tabId: string) => {
+    onTabChange(tabId);
+  }, [onTabChange]);
+
+  const toggleNotifications = useCallback(() => {
+    setShowNotifications(prev => !prev);
+  }, []);
+
+  const toggleDropdown = useCallback(() => {
+    setShowDropdown(prev => !prev);
+  }, []);
+
+  // Optimized comment date parsing
+  const parseCommentDate = useCallback((timestamp: any): Date => {
+    if (timestamp?.seconds) {
+      return new Date(timestamp.seconds * 1000);
+    }
+    return new Date(timestamp);
+  }, []);
+
+  // Optimized batch processing function
+  const createBatches = useCallback((items: string[], batchSize = 10): string[][] => {
+    const batches = [];
+    for (let i = 0; i < items.length; i += batchSize) {
+      batches.push(items.slice(i, i + batchSize));
+    }
+    return batches;
+  }, []);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Load last read time from profile
+  useEffect(() => {
+    if (profile?.last_notification_read_at) {
+      setLastReadTime(new Date(profile.last_notification_read_at));
+    }
+  }, [profile?.last_notification_read_at]);
+
+  // Optimized comment listener setup
+  useEffect(() => {
+    if (!profile) return;
+
+    let unsubscribe: (() => void) | undefined;
+
+    const setupCommentListener = async () => {
+      try {
+        if (profile.role === 'student') {
+          // For students: listen to comments on their submissions
+          const submissionsSnapshot = await getDocs(
+            query(collection(db, 'submissions'), where('student_id', '==', profile.id))
+          );
+
+          const submissionIds = submissionsSnapshot.docs.map(doc => doc.id);
+          if (submissionIds.length === 0) return;
+
+          const batches = createBatches(submissionIds);
+          const unsubscribes: (() => void)[] = [];
+
+          for (const batch of batches) {
+            const commentsQuery = query(
+              collection(db, 'comments'),
+              where('submission_id', 'in', batch)
+            );
+
+            const batchUnsubscribe = onSnapshot(commentsQuery, async (snapshot) => {
+              // Use Promise.all for parallel processing
+              const comments = await Promise.all(
+                snapshot.docs.map(async (commentDoc) => {
+                  const commentData = { id: commentDoc.id, ...commentDoc.data() } as Comment;
+
+                  // Skip own comments
+                  if (commentData.user_id === profile.id) return null;
+
+                  // Fetch user details with error handling
+                  try {
+                    const userDoc = await getDoc(doc(db, 'profiles', commentData.user_id));
+                    const user = userDoc.exists()
+                      ? { id: userDoc.id, ...userDoc.data() } as Profile
+                      : null;
+                    return { ...commentData, user };
+                  } catch (error) {
+                    console.error('Error fetching user:', error);
+                    return { ...commentData, user: null };
+                  }
+                })
+              );
+
+              const validComments = comments.filter(Boolean) as Comment[];
+
+              setNotifications(prevNotifications => {
+                // Optimize notification merging
+                const otherComments = prevNotifications.filter(notif =>
+                  !batch.includes(notif.submission_id)
+                );
+                const allComments = [...otherComments, ...validComments];
+
+                // Sort and limit
+                allComments.sort((a, b) => {
+                  const dateA = parseCommentDate(a.created_at);
+                  const dateB = parseCommentDate(b.created_at);
+                  return dateB.getTime() - dateA.getTime();
+                });
+
+                const finalComments = allComments.slice(0, 10);
+
+                // Update unread count
+                if (lastReadTime) {
+                  const unreadComments = finalComments.filter(comment => {
+                    const commentDate = parseCommentDate(comment.created_at);
+                    return commentDate > lastReadTime;
+                  });
+                  setUnreadCount(unreadComments.length);
+                } else {
+                  setUnreadCount(finalComments.length);
+                }
+
+                return finalComments;
+              });
+            });
+
+            unsubscribes.push(batchUnsubscribe);
+          }
+
+          unsubscribe = () => unsubscribes.forEach(unsub => unsub());
+
+        } else if (profile.role === 'teacher') {
+          // For teachers: optimized query structure
+          const [assignmentsSnapshot] = await Promise.all([
+            getDocs(query(collection(db, 'assignments'), where('teacher_id', '==', profile.id)))
+          ]);
+
+          const assignmentIds = assignmentsSnapshot.docs.map(doc => doc.id);
+          if (assignmentIds.length === 0) return;
+
+          // Get all submissions in parallel
+          const submissionQueries = assignmentIds.map(assignmentId =>
+            getDocs(query(collection(db, 'submissions'), where('assignment_id', '==', assignmentId)))
+          );
+
+          const submissionSnapshots = await Promise.all(submissionQueries);
+          const allSubmissionIds = submissionSnapshots.flatMap(snapshot =>
+            snapshot.docs.map(doc => doc.id)
+          );
+
+          if (allSubmissionIds.length === 0) return;
+
+          const batches = createBatches(allSubmissionIds);
+          const unsubscribes: (() => void)[] = [];
+
+          for (const batch of batches) {
+            const commentsQuery = query(
+              collection(db, 'comments'),
+              where('submission_id', 'in', batch)
+            );
+
+            const batchUnsubscribe = onSnapshot(commentsQuery, async (snapshot) => {
+              const comments = await Promise.all(
+                snapshot.docs.map(async (commentDoc) => {
+                  const commentData = { id: commentDoc.id, ...commentDoc.data() } as Comment;
+
+                  if (commentData.user_id === profile.id) return null;
+
+                  try {
+                    const userDoc = await getDoc(doc(db, 'profiles', commentData.user_id));
+                    const user = userDoc.exists()
+                      ? { id: userDoc.id, ...userDoc.data() } as Profile
+                      : null;
+                    return { ...commentData, user };
+                  } catch (error) {
+                    console.error('Error fetching user:', error);
+                    return { ...commentData, user: null };
+                  }
+                })
+              );
+
+              const validComments = comments.filter(Boolean) as Comment[];
+
+              setNotifications(prevNotifications => {
+                const otherComments = prevNotifications.filter(notif =>
+                  !batch.includes(notif.submission_id)
+                );
+                const allComments = [...otherComments, ...validComments];
+
+                allComments.sort((a, b) => {
+                  const dateA = parseCommentDate(a.created_at);
+                  const dateB = parseCommentDate(b.created_at);
+                  return dateB.getTime() - dateA.getTime();
+                });
+
+                const finalComments = allComments.slice(0, 10);
+
+                // Use requestAnimationFrame for better performance
+                requestAnimationFrame(() => {
+                  if (lastReadTime) {
+                    const unreadComments = finalComments.filter(comment => {
+                      const commentDate = parseCommentDate(comment.created_at);
+                      return commentDate > lastReadTime;
+                    });
+                    setUnreadCount(unreadComments.length);
+                  } else {
+                    setUnreadCount(finalComments.length);
+                  }
+                });
+
+                return finalComments;
+              });
+            });
+
+            unsubscribes.push(batchUnsubscribe);
+          }
+
+          unsubscribe = () => unsubscribes.forEach(unsub => unsub());
+        }
+      } catch (error) {
+        console.error('Error setting up comment listener:', error);
+      }
+    };
+
+    setupCommentListener();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [profile?.id, profile?.role, lastReadTime, createBatches, parseCommentDate]);
+
+  const markAllAsRead = useCallback(async () => {
+    if (!profile) return;
+
+    try {
+      await updateDoc(doc(db, 'profiles', profile.id), {
+        last_notification_read_at: serverTimestamp(),
+        updated_at: serverTimestamp(),
+      });
+
+      setLastReadTime(new Date());
+      setUnreadCount(0);
+      setShowNotifications(false);
+    } catch (error) {
+      console.error('Error updating last read time:', error);
+    }
+  }, [profile?.id]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -371,7 +415,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
             {/* Notifications */}
             <div className="relative" ref={notificationRef}>
               <button
-                onClick={() => setShowNotifications(!showNotifications)}
+                onClick={toggleNotifications}
                 className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <Bell className="w-5 h-5" />
@@ -404,27 +448,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
                       </div>
                     ) : (
                       notifications.map((notification) => (
-                        <div key={notification.id} className="p-3 border-b last:border-b-0 hover:bg-gray-50">
-                          <div className="flex items-start gap-2">
-                            <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                              <User className="w-3 h-3 text-blue-600" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900">
-                                {notification.user?.full_name || 'Unknown User'}
-                              </p>
-                              <p className="text-xs text-gray-500 truncate">
-                                {notification.content}
-                              </p>
-                              <p className="text-xs text-gray-400 mt-1">
-                                {notification.created_at?.seconds
-                                  ? new Date(notification.created_at.seconds * 1000).toLocaleString('vi-VN')
-                                  : 'Vừa xong'
-                                }
-                              </p>
-                            </div>
-                          </div>
-                        </div>
+                        <NotificationItem key={notification.id} notification={notification} />
                       ))
                     )}
                   </div>
@@ -435,7 +459,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
             {/* User Dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
-                onClick={() => setShowDropdown(!showDropdown)}
+                onClick={toggleDropdown}
                 className="flex items-center gap-2 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
@@ -443,7 +467,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-medium text-gray-900">{profile?.full_name}</p>
-                  <p className="text-xs text-gray-500">{getRoleLabel()}</p>
+                  <p className="text-xs text-gray-500">{roleLabel}</p>
                 </div>
                 <ChevronDown className="w-4 h-4" />
               </button>
@@ -468,25 +492,16 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
 
         {/* Menu */}
         <nav className="p-4">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => onTabChange(item.id)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${activeTab === item.id
-                  ? 'bg-blue-50 text-blue-600'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-              >
-                <Icon className="w-5 h-5" />
-                {item.label}
-              </button>
-            );
-          })}
+          {menuItems.map((item) => (
+            <MenuItem
+              key={item.id}
+              item={item}
+              isActive={activeTab === item.id}
+              onClick={() => handleTabChange(item.id)}
+            />
+          ))}
         </nav>
-
       </div>
     </div>
   );
-}
+});
