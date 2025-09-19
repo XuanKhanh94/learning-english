@@ -8,22 +8,19 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id: string) {
-          // Tách React + React DOM
+          // Tách React + React DOM ra chunk riêng
           if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
             return 'vendor';
           }
-          // Tách Firebase modules
-          if (id.includes('node_modules/firebase')) {
-            return 'firebase';
-          }
-          // Tách UI library
+          // Tách lucide-react ra chunk riêng
           if (id.includes('node_modules/lucide-react')) {
             return 'ui';
           }
-          // Tách các thư viện khác (tùy ý)
+          // Các node_modules khác gom chung chunk 'lib'
           if (id.includes('node_modules')) {
             return 'lib';
           }
+          // Các file khác để theo chunk mặc định
         }
       }
     },
@@ -31,7 +28,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['react', 'react-dom'],
-    exclude: ['lucide-react']
+    exclude: ['lucide-react'] // lucide-react sẽ được xử lý qua manualChunks
   },
   server: {
     hmr: {
