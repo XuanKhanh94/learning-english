@@ -313,8 +313,8 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
           <button
             onClick={() => setFilterMode('all')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterMode === 'all'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ? 'bg-blue-500 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
           >
             Tất cả ({submissions.length})
@@ -322,8 +322,8 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
           <button
             onClick={() => setFilterMode('pending')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterMode === 'pending'
-                ? 'bg-yellow-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ? 'bg-yellow-500 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
           >
             Chờ chấm ({submissions.filter(sub => sub.status === 'submitted').length})
@@ -331,8 +331,8 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
           <button
             onClick={() => setFilterMode('graded')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filterMode === 'graded'
-                ? 'bg-green-500 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ? 'bg-green-500 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
           >
             Đã chấm ({submissions.filter(sub => sub.status === 'graded').length})
@@ -439,8 +439,8 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
                                     {comment.user?.full_name || 'Unknown User'}
                                   </span>
                                   <span className={`text-xs px-2 py-1 rounded-full ${comment.user?.role === 'teacher'
-                                      ? 'bg-blue-100 text-blue-800'
-                                      : 'bg-green-100 text-green-800'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-green-100 text-green-800'
                                     }`}>
                                     {comment.user?.role === 'teacher' ? 'Giáo viên' : 'Học sinh'}
                                   </span>

@@ -53,6 +53,10 @@ function App() {
           return <CreateAssignment />;
         case 'submissions':
           return <SubmissionManagement />;
+        case 'pending-submissions':
+          return <SubmissionManagement showOnlyPending={true} />;
+        case 'pending-submissions':
+          return <SubmissionManagement showOnlyPending={true} />;
         default:
           return <TeacherDashboard onTabChange={setActiveTab} />;
       }
