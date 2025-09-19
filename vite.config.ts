@@ -7,36 +7,31 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          firebase: ['firebase/firestore', 'firebase/auth'],
-          ui: ['lucide-react']
-        }
-      }
-    },
-    chunkSizeWarningLimit: 1000
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          firebase: ['firebase/firestore', 'firebase/auth'],
-          ui: ['lucide-react']
+        manualChunks(id: string) {
+          // Tách React + React DOM
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+            return 'vendor';
+          }
+          // Tách Firebase modules
+          if (id.includes('node_modules/firebase')) {
+            return 'firebase';
+          }
+          // Tách UI library
+          if (id.includes('node_modules/lucide-react')) {
+            return 'ui';
+          }
+          // Tách các thư viện khác (tùy ý)
+          if (id.includes('node_modules')) {
+            return 'lib';
+          }
         }
       }
     },
     chunkSizeWarningLimit: 1000
   },
   optimizeDeps: {
-    exclude: ['lucide-react'],
-    include: ['react', 'react-dom']
-  },
-  server: {
-    hmr: {
-      overlay: false
-    }
-    include: ['react', 'react-dom']
+    include: ['react', 'react-dom'],
+    exclude: ['lucide-react']
   },
   server: {
     hmr: {
