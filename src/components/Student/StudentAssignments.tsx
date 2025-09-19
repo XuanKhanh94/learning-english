@@ -32,10 +32,15 @@ export function StudentAssignments() {
 
       ('📋 Found assignment_students records:', querySnapshot.docs.length);
 
-      const assignmentStudents = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as AssignmentStudent[];
+      const assignmentStudents = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        // Convert assigned_at Timestamp to Date
+        return {
+          id: doc.id,
+          ...data,
+          assigned_at: data.assigned_at ? (data.assigned_at.toDate ? data.assigned_at.toDate() : new Date(data.assigned_at)) : null
+        };
+      }) as AssignmentStudent[];
 
       if (assignmentStudents.length === 0) {
         ('❌ No assignments found for student:', profile.id);
@@ -51,7 +56,12 @@ export function StudentAssignments() {
           // Fetch assignment details
           const assignmentDoc = await getDoc(doc(db, 'assignments', assignmentStudent.assignment_id));
           const assignment = assignmentDoc.exists() ?
-            { id: assignmentDoc.id, ...assignmentDoc.data() } as Assignment :
+            {
+              id: assignmentDoc.id,
+              ...assignmentDoc.data(),
+              // Convert due_date Timestamp to Date
+              due_date: assignmentDoc.data().due_date ? (assignmentDoc.data().due_date.toDate ? assignmentDoc.data().due_date.toDate() : new Date(assignmentDoc.data().due_date)) : null
+            } as Assignment :
             null;
 
           if (!assignment) {
@@ -68,7 +78,12 @@ export function StudentAssignments() {
           );
           const submissionSnapshot = await getDocs(submissionQuery);
           const submission = submissionSnapshot.docs[0] ?
-            { id: submissionSnapshot.docs[0].id, ...submissionSnapshot.docs[0].data() } as Submission :
+            {
+              id: submissionSnapshot.docs[0].id,
+              ...submissionSnapshot.docs[0].data(),
+              // Convert submitted_at Timestamp to Date
+              submitted_at: submissionSnapshot.docs[0].data().submitted_at ? (submissionSnapshot.docs[0].data().submitted_at.toDate ? submissionSnapshot.docs[0].data().submitted_at.toDate() : new Date(submissionSnapshot.docs[0].data().submitted_at)) : null
+            } as Submission :
             null;
 
           ('📝 Submission status:', submission ? submission.status : 'No submission');
@@ -86,9 +101,9 @@ export function StudentAssignments() {
 
       // Sort by assigned_at date
       validAssignments.sort((a, b) => {
-        const dateA = new Date(a.assigned_at);
-        const dateB = new Date(b.assigned_at);
-        return dateB.getTime() - dateA.getTime();
+        const dateA = a.assigned_at ? a.assigned_at.getTime() : 0;
+        const dateB = b.assigned_at ? b.assigned_at.getTime() : 0;
+        return dateB - dateA; // desc order
       });
 
       ('✅ Final assignments loaded:', validAssignments.length);
@@ -241,7 +256,7 @@ export function StudentAssignments() {
                   <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
-                      Giao: {new Date(assignment.assigned_at).toLocaleDateString('vi-VN')}
+                      Giao: {assignment.assigned_at ? new Date(assignment.assigned_at).toLocaleDateString('vi-VN') : 'Không xác định'}
                     </span>
                     {assignment.assignment?.due_date && (
                       <span className="flex items-center gap-1">
@@ -254,10 +269,10 @@ export function StudentAssignments() {
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-sm font-medium">Trạng thái:</span>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${assignment.submission?.status === 'graded'
-                        ? 'bg-blue-100 text-blue-800'
-                        : assignment.submission?.status === 'submitted'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-yellow-100 text-yellow-800'
+                      ? 'bg-blue-100 text-blue-800'
+                      : assignment.submission?.status === 'submitted'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800'
                       }`}>
                       {getStatusText(assignment)}
                     </span>

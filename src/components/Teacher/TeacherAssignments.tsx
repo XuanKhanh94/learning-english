@@ -24,16 +24,17 @@ export function TeacherAssignments() {
         where('teacher_id', '==', profile.id)
       );
       const querySnapshot = await getDocs(q);
-      
+
       const assignmentsData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Assignment[];
 
       // Sort by created_at in memory instead of using Firestore orderBy
+      // SỬA: Convert Timestamp to Date trước khi sort
       const sortedAssignments = assignmentsData.sort((a, b) => {
-        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        const dateA = a.created_at ? new Date(a.created_at.toDate()).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at.toDate()).getTime() : 0;
         return dateB - dateA; // desc order
       });
 
@@ -60,6 +61,27 @@ export function TeacherAssignments() {
       document.body.removeChild(a);
     } catch (error) {
       console.error('Error downloading file:', error);
+    }
+  };
+
+  // HÀM HELPER: Để convert Timestamp an toàn (tránh lỗi nếu không phải Timestamp)
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return '';
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString('vi-VN');
+    } catch {
+      return 'Ngày không hợp lệ';
+    }
+  };
+
+  const formatDateTime = (timestamp: any) => {
+    if (!timestamp) return '';
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleString('vi-VN');
+    } catch {
+      return 'Ngày không hợp lệ';
     }
   };
 
@@ -95,7 +117,7 @@ export function TeacherAssignments() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     {assignment.title}
                   </h3>
-                  
+
                   {assignment.description && (
                     <p className="text-gray-700 mb-4">
                       {assignment.description}
@@ -105,12 +127,12 @@ export function TeacherAssignments() {
                   <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
-                      Tạo: {new Date(assignment.created_at).toLocaleDateString('vi-VN')}
+                      Tạo: {formatDate(assignment.created_at)}
                     </span>
                     {assignment.due_date && (
                       <span className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
-                        Hạn nộp: {new Date(assignment.due_date).toLocaleString('vi-VN')}
+                        Hạn nộp: {formatDateTime(assignment.due_date)}
                       </span>
                     )}
                   </div>
@@ -126,7 +148,7 @@ export function TeacherAssignments() {
                       Tải file
                     </button>
                   )}
-                  
+
                   <button className="flex items-center gap-2 px-3 py-2 text-sm text-green-600 hover:bg-green-50 rounded-lg transition-colors">
                     <Eye className="w-4 h-4" />
                     Xem bài nộp
