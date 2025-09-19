@@ -318,6 +318,7 @@ export function Layout({ children, activeTab, onTabChange }: LayoutProps) {
         ];
       case 'student':
         return [
+          { id: 'dashboard', label: 'Tổng quan', icon: BookOpen },
           { id: 'assignments', label: 'Bài tập của tôi', icon: FileText },
           { id: 'submissions', label: 'Bài đã nộp', icon: Upload },
         ];

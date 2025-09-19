@@ -1,8 +1,9 @@
+// TeacherAssignments.tsx
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, deleteDoc } from 'firebase/firestore';
 import { db, Assignment } from '../../lib/firebase';
 import { useAuth } from '../../hooks/useAuth';
-import { FileText, Users, Calendar, Download, Edit, Trash2, Eye } from 'lucide-react';
+import { FileText, Calendar, Download, Edit, Trash2 } from 'lucide-react';
 
 export function TeacherAssignments() {
   const { profile } = useAuth();
@@ -30,12 +31,11 @@ export function TeacherAssignments() {
         ...doc.data()
       })) as Assignment[];
 
-      // Sort by created_at in memory instead of using Firestore orderBy
-      // SỬA: Convert Timestamp to Date trước khi sort
+      // Sort theo created_at (desc)
       const sortedAssignments = assignmentsData.sort((a, b) => {
-        const dateA = a.created_at ? new Date(a.created_at.toDate()).getTime() : 0;
-        const dateB = b.created_at ? new Date(b.created_at.toDate()).getTime() : 0;
-        return dateB - dateA; // desc order
+        const dateA = a.created_at ? (a.created_at.toDate ? a.created_at.toDate().getTime() : new Date(a.created_at).getTime()) : 0;
+        const dateB = b.created_at ? (b.created_at.toDate ? b.created_at.toDate().getTime() : new Date(b.created_at).getTime()) : 0;
+        return dateB - dateA;
       });
 
       setAssignments(sortedAssignments);
@@ -44,6 +44,29 @@ export function TeacherAssignments() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const toDate = (ts: any): Date | null => {
+    if (!ts) return null;
+    try {
+      if (ts.toDate) return ts.toDate();
+      if (ts.seconds) return new Date(ts.seconds * 1000);
+      return new Date(ts);
+    } catch {
+      return null;
+    }
+  };
+
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return '';
+    const date = toDate(timestamp);
+    return date ? date.toLocaleDateString('vi-VN') : 'Ngày không hợp lệ';
+  };
+
+  const formatDateTime = (timestamp: any) => {
+    if (!timestamp) return '';
+    const date = toDate(timestamp);
+    return date ? date.toLocaleString('vi-VN') : 'Ngày không hợp lệ';
   };
 
   const downloadFile = async (fileUrl: string, fileName: string) => {
@@ -64,24 +87,16 @@ export function TeacherAssignments() {
     }
   };
 
-  // HÀM HELPER: Để convert Timestamp an toàn (tránh lỗi nếu không phải Timestamp)
-  const formatDate = (timestamp: any) => {
-    if (!timestamp) return '';
-    try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return date.toLocaleDateString('vi-VN');
-    } catch {
-      return 'Ngày không hợp lệ';
-    }
-  };
+  const handleDelete = async (assignmentId: string) => {
+    const confirmDelete = window.confirm('Bạn có chắc chắn muốn xóa bài tập này?');
+    if (!confirmDelete) return;
 
-  const formatDateTime = (timestamp: any) => {
-    if (!timestamp) return '';
     try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return date.toLocaleString('vi-VN');
-    } catch {
-      return 'Ngày không hợp lệ';
+      await deleteDoc(doc(db, 'assignments', assignmentId));
+      setAssignments(prev => prev.filter(a => a.id !== assignmentId));
+    } catch (error) {
+      console.error('Error deleting assignment:', error);
+      alert('Không thể xóa bài tập. Vui lòng thử lại.');
     }
   };
 
@@ -149,17 +164,15 @@ export function TeacherAssignments() {
                     </button>
                   )}
 
-                  <button className="flex items-center gap-2 px-3 py-2 text-sm text-green-600 hover:bg-green-50 rounded-lg transition-colors">
-                    <Eye className="w-4 h-4" />
-                    Xem bài nộp
-                  </button>
-
                   <button className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
                     <Edit className="w-4 h-4" />
                     Chỉnh sửa
                   </button>
 
-                  <button className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                  <button
+                    onClick={() => handleDelete(assignment.id!)}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
                     <Trash2 className="w-4 h-4" />
                     Xóa
                   </button>
