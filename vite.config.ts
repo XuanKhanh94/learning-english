@@ -42,14 +42,7 @@ export default defineConfig({
       }
     },
     chunkSizeWarningLimit: 1000,
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-    },
-    sourcemap: false, // Disable sourcemaps in production for smaller bundle
+    sourcemap: false
   },
   optimizeDeps: {
     include: [
@@ -69,9 +62,5 @@ export default defineConfig({
       overlay: false
     }
   },
-  // Enable gzip compression
-  define: {
-    __VUE_OPTIONS_API__: false,
-    __VUE_PROD_DEVTOOLS__: false,
-  }
+  // no extra defines
 });
