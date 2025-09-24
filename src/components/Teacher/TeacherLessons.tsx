@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { collection, getDocs, addDoc, query, where, orderBy, serverTimestamp, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db, Lesson } from '../../lib/firebase';
 import { useAuth } from '../../hooks/useAuth';
-import { BookOpen, Plus, Edit, Trash2, Calendar, Clock, FileText, Video, Image, Download, Filter, Users, User } from 'lucide-react';
+import { BookOpen, Plus, Edit, Trash2, Calendar, Clock, FileText, Video, Image, Download, Filter, Users, User, Share } from 'lucide-react';
 import { SkeletonList } from '../Skeletons';
 
 interface Lesson {
@@ -19,6 +19,7 @@ interface Lesson {
     updated_at: unknown;
     teacher_id: string;
     is_published: boolean;
+    share_with_teachers: boolean; // Cho phép chia sẻ với giáo viên khác
     teacher_name?: string; // Thêm tên giáo viên để hiển thị
 }
 
@@ -39,7 +40,8 @@ export function TeacherLessons() {
         file_name: '',
         youtube_url: '',
         youtube_id: '',
-        is_published: true
+        is_published: true,
+        share_with_teachers: true // Mặc định chia sẻ với giáo viên khác
     });
 
     // Function to extract YouTube ID from URL
@@ -61,9 +63,10 @@ export function TeacherLessons() {
                     where('teacher_id', '==', profile.id)
                 );
             } else {
-                // Lấy tất cả bài giảng
+                // Lấy tất cả bài giảng được chia sẻ với giáo viên khác
                 q = query(
-                    collection(db, 'lessons')
+                    collection(db, 'lessons'),
+                    where('share_with_teachers', '==', true)
                 );
             }
 
@@ -163,7 +166,8 @@ export function TeacherLessons() {
                 file_name: '',
                 youtube_url: '',
                 youtube_id: '',
-                is_published: true
+                is_published: true,
+                share_with_teachers: true
             });
             setShowCreateModal(false);
             setShowEditModal(false);
@@ -184,7 +188,8 @@ export function TeacherLessons() {
             file_name: lesson.file_name || '',
             youtube_url: lesson.youtube_url || '',
             youtube_id: lesson.youtube_id || '',
-            is_published: lesson.is_published
+            is_published: lesson.is_published,
+            share_with_teachers: lesson.share_with_teachers
         });
         setEditingLesson(lesson);
         setShowEditModal(true);
@@ -258,7 +263,7 @@ export function TeacherLessons() {
                                     </div>
                                     <div>
                                         <h1 className="text-3xl font-bold text-gray-900">Bài giảng</h1>
-                                        <p className="text-gray-600 mt-1">Quản lý và tạo bài giảng cho học sinh</p>
+                                        <p className="text-gray-600 mt-1">Quản lý và tạo bài giảng, chia sẻ với đồng nghiệp</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-4">
@@ -298,7 +303,8 @@ export function TeacherLessons() {
                                                 file_name: '',
                                                 youtube_url: '',
                                                 youtube_id: '',
-                                                is_published: true
+                                                is_published: true,
+                                                share_with_teachers: true
                                             });
                                         }}
                                         className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
@@ -438,6 +444,29 @@ export function TeacherLessons() {
                                             </>
                                         )}
 
+                                        {/* Chia sẻ với giáo viên khác */}
+                                        <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                                            <Share className="w-5 h-5 text-blue-600" />
+                                            <div className="flex-1">
+                                                <label className="flex items-center gap-3 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={formData.share_with_teachers}
+                                                        onChange={(e) => setFormData({ ...formData, share_with_teachers: e.target.checked })}
+                                                        className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                                    />
+                                                    <div>
+                                                        <span className="text-sm font-semibold text-blue-900">
+                                                            Chia sẻ với giáo viên khác
+                                                        </span>
+                                                        <p className="text-xs text-blue-700 mt-1">
+                                                            Cho phép các giáo viên khác xem bài giảng này
+                                                        </p>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
+
                                         {/* Modal Footer */}
                                         <div className="flex gap-3 pt-6 border-t border-gray-200">
                                             <button
@@ -574,6 +603,29 @@ export function TeacherLessons() {
                                         </>
                                     )}
 
+                                    {/* Chia sẻ với giáo viên khác */}
+                                    <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                        <Share className="w-4 h-4 text-blue-600" />
+                                        <div className="flex-1">
+                                            <label className="flex items-center gap-3 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.share_with_teachers}
+                                                    onChange={(e) => setFormData({ ...formData, share_with_teachers: e.target.checked })}
+                                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                                />
+                                                <div>
+                                                    <span className="text-sm font-semibold text-blue-900">
+                                                        Chia sẻ với giáo viên khác
+                                                    </span>
+                                                    <p className="text-xs text-blue-700 mt-1">
+                                                        Cho phép các giáo viên khác xem bài giảng này
+                                                    </p>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+
                                     <div className="flex gap-2">
                                         <button
                                             type="submit"
@@ -619,7 +671,8 @@ export function TeacherLessons() {
                                         file_name: '',
                                         youtube_url: '',
                                         youtube_id: '',
-                                        is_published: true
+                                        is_published: true,
+                                        share_with_teachers: true
                                     });
                                 }}
                                 className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 font-semibold"
@@ -666,6 +719,15 @@ export function TeacherLessons() {
                                                     <span className="flex items-center gap-1">
                                                         <User className="w-4 h-4" />
                                                         Tác giả: {lesson.teacher_name}
+                                                    </span>
+                                                )}
+                                                {lesson.teacher_id === profile?.id && (
+                                                    <span className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${lesson.share_with_teachers
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : 'bg-gray-100 text-gray-600'
+                                                        }`}>
+                                                        <Share className="w-3 h-3" />
+                                                        {lesson.share_with_teachers ? 'Đã chia sẻ' : 'Riêng tư'}
                                                     </span>
                                                 )}
                                             </div>
