@@ -151,17 +151,17 @@ function CreateAssignment() {
     };
 
     return (
-        <div className="bg-gradient-to-br from-green-50 to-emerald-100">
+        <div className="modern-bg-primary min-h-screen">
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
                 <div className="mb-6 sm:mb-8">
-                    <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6 border border-gray-200">
+                    <div className="modern-card p-4 sm:p-6 modern-animate-fade-in-up">
                         <div className="flex items-center gap-3 sm:gap-4">
-                            <div className="p-2 sm:p-3 bg-green-100 rounded-xl">
-                                <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
+                            <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
+                                <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                             </div>
                             <div>
-                                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Tạo bài tập mới</h1>
-                                <p className="text-gray-600 mt-1 text-sm sm:text-base">Tạo bài tập và gán cho học sinh</p>
+                                <h1 className="modern-heading-2">Tạo bài tập mới</h1>
+                                <p className="modern-text-muted mt-1">Tạo bài tập và gán cho học sinh</p>
                             </div>
                         </div>
                     </div>

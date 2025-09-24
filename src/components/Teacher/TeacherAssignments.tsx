@@ -201,7 +201,7 @@ export function TeacherAssignments() {
 
   // Memoized assignment card component
   const AssignmentCard = React.memo(({ assignment }: { assignment: Assignment }) => (
-    <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+    <div className="modern-card p-4 sm:p-6 modern-animate-fade-in-scale lesson-card-hover">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="flex-1">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
@@ -238,7 +238,7 @@ export function TeacherAssignments() {
                   assignment.file_name || 'assignment'
                 )
               }
-              className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+              className="modern-btn modern-btn-secondary"
             >
               <Download className="w-4 h-4" />
               Tải file
@@ -305,51 +305,65 @@ export function TeacherAssignments() {
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Bài tập của tôi</h1>
-        <p className="text-sm sm:text-base text-gray-600">Quản lý các bài tập đã tạo</p>
-      </div>
-
-      {assignments.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 hd-1366-grid-cols-3 gap-4 sm:gap-6">
-          {assignments.map((assignment) => (
-            <AssignmentCard key={assignment.id} assignment={assignment} />
-          ))}
+    <div className="modern-bg-primary min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-6 sm:mb-8">
+          <div className="modern-card p-6 sm:p-8 modern-animate-fade-in-up">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-3 sm:p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg">
+                  <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="modern-heading-2">Bài tập của tôi</h1>
+                  <p className="modern-text-muted mt-2">Quản lý các bài tập đã tạo</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
 
-      {/* Edit Modal */}
-      <Modal
-        title="Chỉnh sửa bài tập"
-        open={editModalVisible}
-        onOk={handleEditSave}
-        onCancel={() => {
-          setEditModalVisible(false);
-          setEditingAssignment(null);
-          form.resetFields();
-        }}
-        okButtonProps={{ loading: savingEdit }}
-        destroyOnHidden
-      >
-        <Form form={form} layout="vertical">
-          <Form.Item
-            name="title"
-            label="Tiêu đề"
-            rules={[{ required: true, message: 'Vui lòng nhập tiêu đề' }]}
-          >
-            <Input />
-          </Form.Item>
+        {assignments.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 hd-1366-grid-cols-3 gap-4 sm:gap-6">
+            {assignments.map((assignment) => (
+              <AssignmentCard key={assignment.id} assignment={assignment} />
+            ))}
+          </div>
+        )}
 
-          <Form.Item name="description" label="Mô tả">
-            <Input.TextArea rows={4} />
-          </Form.Item>
+        {/* Edit Modal */}
+        <Modal
+          title="Chỉnh sửa bài tập"
+          open={editModalVisible}
+          onOk={handleEditSave}
+          onCancel={() => {
+            setEditModalVisible(false);
+            setEditingAssignment(null);
+            form.resetFields();
+          }}
+          okButtonProps={{ loading: savingEdit }}
+          destroyOnHidden
+        >
+          <Form form={form} layout="vertical">
+            <Form.Item
+              name="title"
+              label="Tiêu đề"
+              rules={[{ required: true, message: 'Vui lòng nhập tiêu đề' }]}
+            >
+              <Input />
+            </Form.Item>
 
-          <Form.Item name="due_date" label="Hạn nộp">
-            <DatePicker showTime style={{ width: '100%' }} />
-          </Form.Item>
-        </Form>
-      </Modal>
+            <Form.Item name="description" label="Mô tả">
+              <Input.TextArea rows={4} />
+            </Form.Item>
+
+            <Form.Item name="due_date" label="Hạn nộp">
+              <DatePicker showTime style={{ width: '100%' }} />
+            </Form.Item>
+          </Form>
+        </Modal>
+      </div>
     </div>
   );
 }

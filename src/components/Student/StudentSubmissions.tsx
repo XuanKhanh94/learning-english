@@ -212,11 +212,23 @@ export function StudentSubmissions() {
   }
 
   return (
-    <div className="bg-gray-100 p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Bài đã nộp</h1>
-          <p className="text-gray-600">Xem lại các bài tập đã nộp và kết quả chấm điểm</p>
+    <div className="modern-bg-primary min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-6 sm:mb-8">
+          <div className="modern-card p-6 sm:p-8 modern-animate-fade-in-up">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-3 sm:p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg">
+                  <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="modern-heading-2">Bài đã nộp</h1>
+                  <p className="modern-text-muted mt-2">Xem lại các bài tập đã nộp và kết quả chấm điểm</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {submissions.length === 0 ? (
@@ -230,7 +242,7 @@ export function StudentSubmissions() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 hd-1366-grid-cols-3 gap-4 sm:gap-6">
             {submissions.map((submission) => (
-              <div key={submission.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+              <div key={submission.id} className="assignment-card p-4 sm:p-6 modern-animate-fade-in-scale lesson-card-hover">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 sm:gap-3 mb-2">
@@ -244,8 +256,8 @@ export function StudentSubmissions() {
                       <div className="text-sm text-gray-600">
                         <span className="font-medium">Trạng thái:</span>
                         <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${submission.status === 'graded'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-yellow-100 text-yellow-800'
+                          ? 'status-graded'
+                          : 'status-pending'
                           }`}>
                           {submission.status === 'graded' ? 'Đã chấm' : 'Chờ chấm'}
                         </span>
@@ -321,7 +333,7 @@ export function StudentSubmissions() {
                         <div className="flex items-center gap-2 mb-3">
                           <FileDown className="w-4 h-4 text-purple-600" />
                           <span className="font-medium text-purple-800">Bài tập đã được trả</span>
-                          <span className="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded-full">
+                          <span className="text-xs modern-badge-accent px-2 py-1 rounded-full">
                             {submission.returned_files.length} file
                           </span>
                         </div>
@@ -342,7 +354,7 @@ export function StudentSubmissions() {
                               </div>
                               <button
                                 onClick={() => handleDownload(file.file_url, file.file_name)}
-                                className="flex items-center gap-1 px-3 py-1 text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-100 rounded-lg transition-colors"
+                                className="btn-download text-xs px-3 py-1"
                               >
                                 <Download className="w-3 h-3" />
                                 Tải xuống
@@ -361,7 +373,7 @@ export function StudentSubmissions() {
                     <div className="flex flex-row sm:flex-col gap-2 sm:gap-4">
                       <button
                         onClick={() => handleDownload(submission.file_url, submission.file_name)}
-                        className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
+                        className="btn-download"
                       >
                         <Download className="w-4 h-4" />
                         Tải xuống
@@ -375,12 +387,12 @@ export function StudentSubmissions() {
                             fetchComments(newSelected);
                           }
                         }}
-                        className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
+                        className="btn-download"
                       >
                         <MessageSquare className="w-4 h-4" />
                         {selectedSubmission === submission.id ? 'Ẩn thảo luận' : 'Xem thảo luận'}
                         {comments[submission.id] && comments[submission.id].length > 0 && (
-                          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                          <span className="modern-badge-primary text-xs px-2 py-1 rounded-full">
                             {comments[submission.id].length}
                           </span>
                         )}
@@ -401,7 +413,7 @@ export function StudentSubmissions() {
               className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]"
               style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
             >
-              <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] flex flex-col">
+              <div className="modern-card rounded-lg max-w-2xl w-full max-h-[80vh] flex flex-col">
                 <div className="p-6 border-b">
                   <div className="flex items-center justify-between">
                     <div>
@@ -448,8 +460,8 @@ export function StudentSubmissions() {
                               {comment.user?.full_name || 'Unknown User'}
                             </span>
                             <span className={`text-xs px-2 py-1 rounded-full ${comment.user?.role === 'teacher'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-green-100 text-green-800'
+                              ? 'modern-badge-primary'
+                              : 'modern-badge-success'
                               }`}>
                               {comment.user?.role === 'teacher' ? 'Giáo viên' : 'Học sinh'}
                             </span>
@@ -472,7 +484,7 @@ export function StudentSubmissions() {
                       value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
                       placeholder="Nhập bình luận..."
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg modern-focus-accent text-sm"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && !sendingComment) {
                           handleSendComment(selectedSubmission);
@@ -482,7 +494,7 @@ export function StudentSubmissions() {
                     <button
                       onClick={() => handleSendComment(selectedSubmission)}
                       disabled={sendingComment || !newComment.trim()}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white rounded-lg transition-colors"
+                      className="modern-btn modern-btn-primary"
                     >
                       <Send className="w-4 h-4" />
                     </button>

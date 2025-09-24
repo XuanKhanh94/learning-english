@@ -206,153 +206,167 @@ export function StudentAssignments() {
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Bài tập của tôi</h1>
-        <p className="text-gray-600">Quản lý và nộp bài tập được giao</p>
-      </div>
-
-      {assignments.length === 0 ? (
-        <div className="text-center py-12">
-          <FileText className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Chưa có bài tập nào</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            Bạn chưa được giao bài tập nào.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 hd-1366-grid-cols-3 gap-4 sm:gap-6">
-          {assignments.map((assignment) => (
-            <div key={assignment.id} className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                    {getStatusIcon(assignment)}
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                      {assignment.assignment?.title}
-                    </h3>
-                  </div>
-
-                  {assignment.assignment?.description && (
-                    <p className="text-gray-700 mb-4">
-                      {assignment.assignment.description}
-                    </p>
-                  )}
-
-                  <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      Giao: {assignment.assigned_at ? new Date(assignment.assigned_at).toLocaleDateString('vi-VN') : 'Không xác định'}
-                    </span>
-                    {assignment.assignment?.due_date && (
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        Hạn nộp: {new Date(assignment.assignment.due_date).toLocaleString('vi-VN')}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-sm font-medium">Trạng thái:</span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${assignment.submission?.status === 'graded'
-                      ? 'bg-blue-100 text-blue-800'
-                      : assignment.submission?.status === 'submitted'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                      {getStatusText(assignment)}
-                    </span>
-                  </div>
-
-                  {assignment.submission?.feedback && (
-                    <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                      <p className="text-sm font-medium text-blue-900">Nhận xét từ giáo viên:</p>
-                      <p className="text-sm text-blue-800 mt-1">{assignment.submission.feedback}</p>
-                    </div>
-                  )}
+    <div className="modern-bg-primary min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-6 sm:mb-8">
+          <div className="modern-card p-6 sm:p-8 modern-animate-fade-in-up">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="p-3 sm:p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg">
+                  <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
-
-                <div className="flex flex-row sm:flex-col gap-2 sm:ml-4">
-                  {/* Hiển thị file đơn lẻ (tương thích ngược) */}
-                  {assignment.assignment?.file_url && !assignment.assignment?.files && (
-                    <button
-                      onClick={() => downloadFile(assignment.assignment!.file_url!, assignment.assignment!.file_name!)}
-                      className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    >
-                      <Download className="w-4 h-4" />
-                      Tải đề bài
-                    </button>
-                  )}
-
-                  {/* Hiển thị nhiều file */}
-                  {assignment.assignment?.files && assignment.assignment.files.length > 0 && (
-                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-center gap-2 mb-2">
-                        <FileDown className="w-4 h-4 text-blue-600" />
-                        <span className="text-sm font-medium text-blue-800">File đề bài</span>
-                        <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
-                          {assignment.assignment.files.length} file
-                        </span>
-                      </div>
-                      <div className="space-y-2">
-                        {assignment.assignment.files.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-blue-200">
-                            <div className="flex items-center gap-2">
-                              <FileText className="w-4 h-4 text-blue-500" />
-                              <div>
-                                <p className="text-sm font-medium text-gray-900">{file.file_name}</p>
-                                {file.description && (
-                                  <p className="text-xs text-gray-600">{file.description}</p>
-                                )}
-                              </div>
-                            </div>
-                            <button
-                              onClick={() => downloadFile(file.file_url, file.file_name)}
-                              className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors"
-                            >
-                              <Download className="w-3 h-3" />
-                              Tải
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {!assignment.submission && (
-                    <label className={`flex items-center gap-2 px-3 py-2 text-sm text-white bg-green-500 hover:bg-green-600 rounded-lg cursor-pointer transition-colors ${uploading === assignment.assignment_id ? 'opacity-50' : ''
-                      }`}>
-                      <Upload className="w-4 h-4" />
-                      {uploading === assignment.assignment_id ? 'Đang tải...' : 'Nộp bài'}
-                      <input
-                        type="file"
-                        className="hidden"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleFileUpload(assignment.assignment_id, file);
-                          }
-                        }}
-                        disabled={uploading === assignment.assignment_id}
-                      />
-                    </label>
-                  )}
-
-                  {assignment.submission && (
-                    <button
-                      onClick={() => downloadFile(assignment.submission!.file_url, assignment.submission!.file_name)}
-                      className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                    >
-                      <Download className="w-4 h-4" />
-                      Tải bài nộp
-                    </button>
-                  )}
+                <div>
+                  <h1 className="modern-heading-2">Bài tập của tôi</h1>
+                  <p className="modern-text-muted mt-2">Quản lý và nộp bài tập được giao</p>
                 </div>
               </div>
             </div>
-          ))}
+          </div>
         </div>
-      )}
+
+        {assignments.length === 0 ? (
+          <div className="text-center py-12">
+            <FileText className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">Chưa có bài tập nào</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Bạn chưa được giao bài tập nào.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 hd-1366-grid-cols-3 gap-4 sm:gap-6">
+            {assignments.map((assignment) => (
+              <div key={assignment.id} className="assignment-card p-4 sm:p-6 modern-animate-fade-in-scale lesson-card-hover">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                      {getStatusIcon(assignment)}
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+                        {assignment.assignment?.title}
+                      </h3>
+                    </div>
+
+                    {assignment.assignment?.description && (
+                      <p className="text-gray-700 mb-4">
+                        {assignment.assignment.description}
+                      </p>
+                    )}
+
+                    <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        Giao: {assignment.assigned_at ? new Date(assignment.assigned_at).toLocaleDateString('vi-VN') : 'Không xác định'}
+                      </span>
+                      {assignment.assignment?.due_date && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          Hạn nộp: {new Date(assignment.assignment.due_date).toLocaleString('vi-VN')}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="text-sm font-medium">Trạng thái:</span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${assignment.submission?.status === 'graded'
+                        ? 'status-graded'
+                        : assignment.submission?.status === 'submitted'
+                          ? 'status-submitted'
+                          : 'status-pending'
+                        }`}>
+                        {getStatusText(assignment)}
+                      </span>
+                    </div>
+
+                    {assignment.submission?.feedback && (
+                      <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                        <p className="text-sm font-medium text-blue-900">Nhận xét từ giáo viên:</p>
+                        <p className="text-sm text-blue-800 mt-1">{assignment.submission.feedback}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-row sm:flex-col gap-2 sm:ml-4">
+                    {/* Hiển thị file đơn lẻ (tương thích ngược) */}
+                    {assignment.assignment?.file_url && !assignment.assignment?.files && (
+                      <button
+                        onClick={() => downloadFile(assignment.assignment!.file_url!, assignment.assignment!.file_name!)}
+                        className="btn-download"
+                      >
+                        <Download className="w-4 h-4" />
+                        Tải đề bài
+                      </button>
+                    )}
+
+                    {/* Hiển thị nhiều file */}
+                    {assignment.assignment?.files && assignment.assignment.files.length > 0 && (
+                      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FileDown className="w-4 h-4 text-blue-600" />
+                          <span className="text-sm font-medium text-blue-800">File đề bài</span>
+                          <span className="text-xs modern-badge-primary px-2 py-1 rounded-full">
+                            {assignment.assignment.files.length} file
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {assignment.assignment.files.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-blue-200">
+                              <div className="flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-blue-500" />
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">{file.file_name}</p>
+                                  {file.description && (
+                                    <p className="text-xs text-gray-600">{file.description}</p>
+                                  )}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => downloadFile(file.file_url, file.file_name)}
+                                className="btn-download text-xs px-2 py-1"
+                              >
+                                <Download className="w-3 h-3" />
+                                Tải
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {!assignment.submission && (
+                      <label className={`modern-btn modern-btn-success cursor-pointer ${uploading === assignment.assignment_id ? 'opacity-50' : ''
+                        }`}>
+                        <Upload className="w-4 h-4" />
+                        {uploading === assignment.assignment_id ? 'Đang tải...' : 'Nộp bài'}
+                        <input
+                          type="file"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleFileUpload(assignment.assignment_id, file);
+                            }
+                          }}
+                          disabled={uploading === assignment.assignment_id}
+                        />
+                      </label>
+                    )}
+
+                    {assignment.submission && (
+                      <button
+                        onClick={() => downloadFile(assignment.submission!.file_url, assignment.submission!.file_name)}
+                        className="btn-download"
+                      >
+                        <Download className="w-4 h-4" />
+                        Tải bài nộp
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
