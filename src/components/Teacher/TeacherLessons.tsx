@@ -856,7 +856,7 @@ export function TeacherLessons() {
                                     <div className="lesson-card-content">
                                         {/* Video/Media Section - Moved to top */}
                                         {lesson.type === 'youtube' && lesson.youtube_id && (
-                                            <div className="relative w-full h-24 bg-gray-100 rounded-lg overflow-hidden mb-2">
+                                            <div className="relative w-full h-44 bg-gray-100 rounded-lg overflow-hidden mb-2">
                                                 <iframe
                                                     width="100%"
                                                     height="100%"

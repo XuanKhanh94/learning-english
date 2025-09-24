@@ -627,14 +627,17 @@
 }
 
 /* Video section at top of lesson card */
-.lesson-card .relative.w-full.h-24 {
+.lesson-card .relative.w-full.h-44 {
     border-radius: var(--radius-lg);
     overflow: hidden;
     box-shadow: var(--shadow-sm);
     border: 1px solid var(--gray-200);
+    width: 315px;
+    height: 175px;
+    max-width: 100%;
 }
 
-.lesson-card .relative.w-full.h-24 iframe {
+.lesson-card .relative.w-full.h-44 iframe {
     border-radius: var(--radius-lg);
 }
 
@@ -764,8 +767,8 @@
 /* Lesson Card Sizing */
 .lesson-card {
     width: 315px;
-    height: 400px;
-    /* Increased height to accommodate video at top */
+    height: 450px;
+    /* Increased height to accommodate larger video */
     max-width: 100%;
     display: flex;
     flex-direction: column;
@@ -816,8 +819,8 @@
     .lesson-card {
         width: 100%;
         height: auto;
-        min-height: 350px;
-        /* Increased for video at top */
+        min-height: 400px;
+        /* Increased for larger video */
     }
 
     .lesson-card-content {
@@ -825,8 +828,8 @@
         gap: var(--space-1);
     }
 
-    .lesson-card .relative.w-full.h-24 {
-        height: 120px;
+    .lesson-card .relative.w-full.h-44 {
+        height: 140px;
         /* Slightly larger on mobile */
     }
 }
@@ -835,8 +838,8 @@
     .lesson-card {
         width: 100%;
         height: auto;
-        min-height: 320px;
-        /* Increased for video at top */
+        min-height: 370px;
+        /* Increased for larger video */
     }
 
     .lesson-card-content {
@@ -852,8 +855,8 @@
         font-size: 0.7rem;
     }
 
-    .lesson-card .relative.w-full.h-24 {
-        height: 100px;
+    .lesson-card .relative.w-full.h-44 {
+        height: 120px;
         /* Smaller on very small screens */
     }
 }
