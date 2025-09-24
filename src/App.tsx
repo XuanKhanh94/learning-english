@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import { SkeletonList } from './components/Skeletons';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from './lib/firebase';
 import { firebaseCache } from './lib/firebase-cache';
@@ -45,21 +46,22 @@ const SubmissionManagement = React.lazy(() =>
   }))
 );
 
-// Loading component
-const LoadingSpinner = React.memo(() => (
-  <div className="flex items-center justify-center h-64">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-  </div>
-));
+// Loading component -> Skeletons
+const LoadingSpinner = React.memo(() => <SkeletonList count={6} />);
 
 function App() {
   const { user, profile, loading } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
 
+
+  const handleTabChange = useCallback((tabId: string) => {
+    setActiveTab(tabId);
+  }, []);
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen bg-gray-100 p-6">
+        <SkeletonList count={8} />
       </div>
     );
   }
@@ -154,7 +156,7 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <Layout activeTab={activeTab} onTabChange={setActiveTab}>
+      <Layout activeTab={activeTab} onTabChange={handleTabChange}>
         {renderContent()}
       </Layout>
     </ErrorBoundary>
@@ -222,7 +224,7 @@ const TeacherDashboard = React.memo(function TeacherDashboard({
     } finally {
       setLoading(false);
     }
-  }, [profile?.id]);
+  }, [profile]);
 
   useEffect(() => {
     if (profile) {
@@ -344,7 +346,7 @@ const StudentDashboard = React.memo(function StudentDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [profile?.id]);
+  }, [profile]);
 
   useEffect(() => {
     if (profile) {

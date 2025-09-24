@@ -68,6 +68,15 @@ export interface Profile {
   last_notification_read_at?: string;
 }
 
+export interface Comment {
+  id: string;
+  submission_id: string;
+  user_id: string;
+  content: string;
+  created_at: unknown;
+  user?: Profile | null;
+}
+
 export interface Assignment {
   id: string;
   title: string;

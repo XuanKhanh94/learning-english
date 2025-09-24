@@ -1,19 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { collection, getDocs, query, where, doc, updateDoc, getDoc, addDoc, serverTimestamp, getCountFromServer, documentId } from 'firebase/firestore';
-import { db, Submission, Assignment, Profile } from '../../lib/firebase';
+import { db, Submission, Assignment, Profile, Comment } from '../../lib/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { Download, Star, MessageSquare, Calendar, User, FileText, CheckCircle, Clock, AlertCircle, Send } from 'lucide-react';
 import { VirtualList } from '../VirtualList';
+import { SkeletonList } from '../Skeletons';
 
-// Local Comment type (not exported from firebase.ts)
-interface Comment {
-  id: string;
-  submission_id: string;
-  user_id: string;
-  content: string;
-  created_at: unknown;
-  user?: Profile | null;
-}
 
 interface SubmissionManagementProps {
   showOnlyPending?: boolean;
@@ -209,13 +201,58 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
     } catch (error) {
       console.error('Error fetching comments:', error);
     }
-  }, [db]);
+  }, []);
 
-  useEffect(() => {
-    if (selectedSubmissionForComments) {
-      fetchComments(selectedSubmissionForComments);
+  // Fetch submission directly if not found in current list
+  const fetchSubmissionDirectly = useCallback(async (submissionId: string) => {
+    try {
+      const submissionDoc = await getDoc(doc(db, 'submissions', submissionId));
+
+      if (submissionDoc.exists()) {
+        const submissionData = { id: submissionDoc.id, ...submissionDoc.data() } as Submission;
+
+        // Check if this submission belongs to an assignment created by this teacher
+        const assignmentDoc = await getDoc(doc(db, 'assignments', submissionData.assignment_id));
+        if (assignmentDoc.exists()) {
+          const assignmentData = { id: assignmentDoc.id, ...assignmentDoc.data() } as Assignment;
+
+          if (assignmentData.teacher_id === profile?.id) {
+            setSelectedSubmissionForComments(submissionId);
+            fetchComments(submissionId);
+            localStorage.removeItem('focus_submission_id');
+            return;
+          }
+        }
+      }
+
+      localStorage.removeItem('focus_submission_id');
+    } catch (error) {
+      console.error('Error fetching submission directly:', error);
+      localStorage.removeItem('focus_submission_id');
     }
-  }, [selectedSubmissionForComments, fetchComments]);
+  }, [profile?.id, fetchComments]);
+
+  // Consume deep-link focus id from storage to auto-expand comments
+  useEffect(() => {
+    const id = localStorage.getItem('focus_submission_id');
+    if (id) {
+      // Wait a bit for submissions to load, then check if submission exists
+      const timer = setTimeout(() => {
+        const submissionExists = submissions.some(s => s.id === id);
+
+        if (submissionExists) {
+          setSelectedSubmissionForComments(id);
+          fetchComments(id);
+          localStorage.removeItem('focus_submission_id');
+        } else {
+          // If submission not found, try to fetch it directly
+          fetchSubmissionDirectly(id);
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [submissions, fetchComments, fetchSubmissionDirectly]);
 
   const applyFilter = useCallback(() => {
     let filtered = submissions;
@@ -368,17 +405,7 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
   };
 
   if (loading) {
-    return (
-      <div className="space-y-4">
-        {Array.from({ length: 6 }).map((_, idx) => (
-          <div key={idx} className="bg-white rounded-lg shadow-md p-6 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-1/3 mb-3"></div>
-            <div className="h-3 bg-gray-200 rounded w-1/4 mb-2"></div>
-            <div className="h-3 bg-gray-200 rounded w-1/5"></div>
-          </div>
-        ))}
-      </div>
-    );
+    return <SkeletonList count={8} />;
   }
 
   return (
@@ -504,9 +531,17 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
                     {/* Comments Section */}
                     <div className="mt-4">
                       <button
-                        onClick={() => setSelectedSubmissionForComments(
-                          selectedSubmissionForComments === submission.id ? null : submission.id
-                        )}
+                        onClick={() => {
+                          const newSelected = selectedSubmissionForComments === submission.id ? null : submission.id;
+                          console.log('🖱️ [SubmissionManagement] Button clicked, newSelected:', newSelected);
+                          console.log('🖱️ [SubmissionManagement] Current selectedSubmissionForComments:', selectedSubmissionForComments);
+                          setSelectedSubmissionForComments(newSelected);
+                          if (newSelected) {
+                            console.log('🖱️ [SubmissionManagement] Fetching comments for:', newSelected);
+                            // Always fetch fresh comments when opening
+                            fetchComments(newSelected);
+                          }
+                        }}
                         className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
                       >
                         <MessageSquare className="w-4 h-4" />
@@ -517,63 +552,6 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
                           </span>
                         )}
                       </button>
-
-                      {selectedSubmissionForComments === submission.id && (
-                        <div className="mt-3 border-t pt-3">
-                          {/* Comments List */}
-                          <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
-                            {comments[submission.id]?.map((comment) => (
-                              <div key={comment.id} className="flex gap-3">
-                                <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
-                                  <User className="w-4 h-4 text-gray-500" />
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-sm font-medium text-gray-900">
-                                      {comment.user?.full_name || 'Unknown User'}
-                                    </span>
-                                    <span className={`text-xs px-2 py-1 rounded-full ${comment.user?.role === 'teacher'
-                                      ? 'bg-blue-100 text-blue-800'
-                                      : 'bg-green-100 text-green-800'
-                                      }`}>
-                                      {comment.user?.role === 'teacher' ? 'Giáo viên' : 'Học sinh'}
-                                    </span>
-                                  </div>
-                                  <p className="text-sm text-gray-700">{comment.content}</p>
-                                </div>
-                              </div>
-                            ))}
-                            {(!comments[submission.id] || comments[submission.id].length === 0) && (
-                              <p className="text-sm text-gray-500 text-center py-4">
-                                Chưa có thảo luận nào. Hãy bắt đầu cuộc trò chuyện!
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Comment Input */}
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={newComment}
-                              onChange={(e) => setNewComment(e.target.value)}
-                              placeholder="Nhập nhận xét hoặc phản hồi..."
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                              onKeyPress={(e) => {
-                                if (e.key === 'Enter' && !sendingComment) {
-                                  handleSendComment(submission.id);
-                                }
-                              }}
-                            />
-                            <button
-                              onClick={() => handleSendComment(submission.id)}
-                              disabled={sendingComment || !newComment.trim()}
-                              className="px-3 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white rounded-lg transition-colors"
-                            >
-                              <Send className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   </div>
 
@@ -669,6 +647,103 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
           </div>
         </div>
       )}
+
+      {/* Comments Modal */}
+      {selectedSubmissionForComments && (() => {
+        const submission = submissions.find(s => s.id === selectedSubmissionForComments);
+        return submission ? (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] flex flex-col">
+              <div className="p-6 border-b">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Thảo luận bài nộp
+                    </h3>
+                    <div className="mt-2 text-sm text-gray-600">
+                      <p className="font-medium">{submission.assignment?.title || 'Bài tập không xác định'}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Học sinh: {submission.student?.full_name || 'Không xác định'}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Nộp: {toDate(submission.submitted_at as unknown).toLocaleString('vi-VN')}
+                      </p>
+                      {submission.status === 'graded' && submission.grade !== undefined && (
+                        <p className="text-xs text-blue-600 mt-1">
+                          Điểm: {submission.grade}/10
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedSubmissionForComments(null)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6">
+                {/* Comments List */}
+                <div className="space-y-4 mb-6">
+                  {comments[selectedSubmissionForComments]?.map((comment) => (
+                    <div key={comment.id} className="flex gap-3">
+                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                        <User className="w-4 h-4 text-gray-500" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium text-gray-900">
+                            {comment.user?.full_name || 'Unknown User'}
+                          </span>
+                          <span className={`text-xs px-2 py-1 rounded-full ${comment.user?.role === 'teacher'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-green-100 text-green-800'
+                            }`}>
+                            {comment.user?.role === 'teacher' ? 'Giáo viên' : 'Học sinh'}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700">{comment.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {(!comments[selectedSubmissionForComments] || comments[selectedSubmissionForComments].length === 0) && (
+                    <p className="text-sm text-gray-500 text-center py-8">
+                      Chưa có thảo luận nào. Hãy bắt đầu cuộc trò chuyện!
+                    </p>
+                  )}
+                </div>
+
+                {/* Comment Input */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Nhập nhận xét hoặc phản hồi..."
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && !sendingComment) {
+                        handleSendComment(selectedSubmissionForComments);
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => handleSendComment(selectedSubmissionForComments)}
+                    disabled={sendingComment || !newComment.trim()}
+                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white rounded-lg transition-colors"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null;
+      })()}
     </div>
   );
 }

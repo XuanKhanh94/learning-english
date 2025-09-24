@@ -2,6 +2,25 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { collection, query, where, onSnapshot, doc, getDoc, getDocs, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db, Comment, Profile } from '../lib/firebase';
 import { useAuth } from '../hooks/useAuth';
+
+// Utility function to safely convert timestamp to Date
+const toDate = (ts: unknown): Date => {
+  if (!ts) return new Date(0);
+  try {
+    if (typeof ts === 'object' && ts !== null && 'seconds' in ts) {
+      return new Date((ts as { seconds: number }).seconds * 1000);
+    }
+    if (typeof ts === 'number') {
+      return new Date(ts * 1000);
+    }
+    if (typeof ts === 'string') {
+      return new Date(ts);
+    }
+    return new Date(0);
+  } catch {
+    return new Date(0);
+  }
+};
 import {
   BookOpen,
   Users,
@@ -23,8 +42,11 @@ interface LayoutProps {
 }
 
 // Memoized notification item component
-const NotificationItem = React.memo(({ notification }: { notification: Comment }) => (
-  <div className="p-3 border-b last:border-b-0 hover:bg-gray-50">
+const NotificationItem = React.memo(({ notification, onClick }: { notification: Comment; onClick: (n: Comment) => void }) => (
+  <button
+    onClick={() => onClick(notification)}
+    className="w-full text-left p-3 border-b last:border-b-0 hover:bg-gray-50"
+  >
     <div className="flex items-start gap-2">
       <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
         <User className="w-3 h-3 text-blue-600" />
@@ -37,14 +59,14 @@ const NotificationItem = React.memo(({ notification }: { notification: Comment }
           {notification.content}
         </p>
         <p className="text-xs text-gray-400 mt-1">
-          {notification.created_at?.seconds
-            ? new Date(notification.created_at.seconds * 1000).toLocaleString('vi-VN')
+          {notification.created_at
+            ? toDate(notification.created_at).toLocaleString('vi-VN')
             : 'Vừa xong'
           }
         </p>
       </div>
     </div>
-  </div>
+  </button>
 ));
 
 NotificationItem.displayName = 'NotificationItem';
@@ -55,7 +77,7 @@ const MenuItem = React.memo(({
   isActive,
   onClick
 }: {
-  item: { id: string; label: string; icon: any },
+  item: { id: string; label: string; icon: React.ComponentType<{ className?: string }> },
   isActive: boolean,
   onClick: () => void
 }) => {
@@ -64,8 +86,8 @@ const MenuItem = React.memo(({
     <button
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${isActive
-          ? 'bg-blue-50 text-blue-600'
-          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+        ? 'bg-blue-50 text-blue-600'
+        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
         }`}
     >
       <Icon className="w-5 h-5" />
@@ -112,7 +134,7 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
       default:
         return [];
     }
-  }, [profile?.role]);
+  }, [profile]);
 
   // Memoize role label
   const roleLabel = useMemo(() => {
@@ -133,6 +155,31 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
     onTabChange(tabId);
   }, [onTabChange]);
 
+  const handleNotificationClick = useCallback(async (n: Comment) => {
+    try {
+      // Deep-link target: store submission id for target screen to open
+      localStorage.setItem('focus_submission_id', n.submission_id);
+
+      // Mark as read: set last_notification_read_at to this comment's time (fallback to now)
+      if (profile) {
+        const readAt = n.created_at
+          ? toDate(n.created_at).toISOString()
+          : undefined;
+        await updateDoc(doc(db, 'profiles', profile.id), {
+          last_notification_read_at: readAt ? readAt : serverTimestamp(),
+          updated_at: serverTimestamp(),
+        });
+        setLastReadTime(readAt ? new Date(readAt) : new Date());
+      }
+
+      // Navigate to submissions
+      handleTabChange('submissions');
+      setShowNotifications(false);
+    } catch (error) {
+      console.error('Failed to mark notification as read or navigate:', error);
+    }
+  }, [profile, handleTabChange]);
+
   const toggleNotifications = useCallback(() => {
     setShowNotifications(prev => !prev);
   }, []);
@@ -142,11 +189,8 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
   }, []);
 
   // Optimized comment date parsing
-  const parseCommentDate = useCallback((timestamp: any): Date => {
-    if (timestamp?.seconds) {
-      return new Date(timestamp.seconds * 1000);
-    }
-    return new Date(timestamp);
+  const parseCommentDate = useCallback((timestamp: unknown): Date => {
+    return toDate(timestamp);
   }, []);
 
   // Optimized batch processing function
@@ -367,7 +411,7 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
         unsubscribe();
       }
     };
-  }, [profile?.id, profile?.role, lastReadTime, createBatches, parseCommentDate]);
+  }, [profile, lastReadTime, createBatches, parseCommentDate]);
 
   const markAllAsRead = useCallback(async () => {
     if (!profile) return;
@@ -384,7 +428,7 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
     } catch (error) {
       console.error('Error updating last read time:', error);
     }
-  }, [profile?.id]);
+  }, [profile]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -448,7 +492,7 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
                       </div>
                     ) : (
                       notifications.map((notification) => (
-                        <NotificationItem key={notification.id} notification={notification} />
+                        <NotificationItem key={notification.id} notification={notification} onClick={handleNotificationClick} />
                       ))
                     )}
                   </div>
