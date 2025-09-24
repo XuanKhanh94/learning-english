@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { collection, getDocs, addDoc, query, where, orderBy, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import { db, Assignment, AssignmentStudent, Submission } from '../../lib/firebase';
 import { uploadToCloudinary } from '../../lib/cloudinary';
 import { useAuth } from '../../hooks/useAuth';
 import { Download, Upload, Clock, CheckCircle, AlertCircle, Calendar, FileText } from 'lucide-react';
+import { SkeletonList } from '../Skeletons';
 
 export function StudentAssignments() {
   const { profile } = useAuth();
@@ -20,7 +21,6 @@ export function StudentAssignments() {
   const fetchAssignments = async () => {
     if (!profile) return;
 
-    ('🔍 Fetching assignments for student:', profile.id, profile.email);
 
     try {
       // Fetch assignments assigned to this student
@@ -30,7 +30,6 @@ export function StudentAssignments() {
       );
       const querySnapshot = await getDocs(q);
 
-      ('📋 Found assignment_students records:', querySnapshot.docs.length);
 
       const assignmentStudents = querySnapshot.docs.map(doc => {
         const data = doc.data();
@@ -43,7 +42,6 @@ export function StudentAssignments() {
       }) as AssignmentStudent[];
 
       if (assignmentStudents.length === 0) {
-        ('❌ No assignments found for student:', profile.id);
         setAssignments([]);
         return;
       }
@@ -51,7 +49,6 @@ export function StudentAssignments() {
       // Fetch assignment details and submissions
       const enrichedAssignments = await Promise.all(
         assignmentStudents.map(async (assignmentStudent) => {
-          ('🔍 Fetching assignment details for:', assignmentStudent.assignment_id);
 
           // Fetch assignment details
           const assignmentDoc = await getDoc(doc(db, 'assignments', assignmentStudent.assignment_id));
@@ -64,11 +61,6 @@ export function StudentAssignments() {
             } as Assignment :
             null;
 
-          if (!assignment) {
-            ('❌ Assignment not found:', assignmentStudent.assignment_id);
-          } else {
-            ('✅ Assignment found:', assignment.title);
-          }
 
           // Fetch submission if exists
           const submissionQuery = query(
@@ -86,7 +78,6 @@ export function StudentAssignments() {
             } as Submission :
             null;
 
-          ('📝 Submission status:', submission ? submission.status : 'No submission');
 
           return {
             ...assignmentStudent,
@@ -106,7 +97,6 @@ export function StudentAssignments() {
         return dateB - dateA; // desc order
       });
 
-      ('✅ Final assignments loaded:', validAssignments.length);
       setAssignments(validAssignments);
     } catch (error) {
       console.error('Error fetching assignments:', error);
@@ -141,11 +131,9 @@ export function StudentAssignments() {
 
     try {
       // Upload file to Cloudinary
-      ('Uploading student submission to Cloudinary:', file.name, 'Size:', file.size);
       const uploadResult = await uploadToCloudinary(file, `submissions/${profile.id}/${assignmentId}`);
 
       // Create submission record in Firebase Firestore
-      ('Saving submission to Firebase Firestore');
       await addDoc(collection(db, 'submissions'), {
         assignment_id: assignmentId,
         student_id: profile.id,
@@ -154,8 +142,6 @@ export function StudentAssignments() {
         status: 'submitted',
         submitted_at: serverTimestamp(),
       });
-
-      ('Submission saved successfully - File:', uploadResult.secure_url, 'Record: Firestore');
 
       // Refresh assignments
       await fetchAssignments();
@@ -213,8 +199,8 @@ export function StudentAssignments() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen bg-gray-100 p-6">
+        <SkeletonList count={6} />
       </div>
     );
   }
