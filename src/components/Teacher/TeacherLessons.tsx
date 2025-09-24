@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { collection, getDocs, addDoc, query, where, orderBy, serverTimestamp, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db, Lesson } from '../../lib/firebase';
 import { useAuth } from '../../hooks/useAuth';
-import { BookOpen, Plus, Edit, Trash2, Calendar, Clock, FileText, Video, Image, Download } from 'lucide-react';
+import { BookOpen, Plus, Edit, Trash2, Calendar, Clock, FileText, Video, Image, Download, Filter, Users, User } from 'lucide-react';
 import { SkeletonList } from '../Skeletons';
 
 interface Lesson {
@@ -19,6 +19,7 @@ interface Lesson {
     updated_at: unknown;
     teacher_id: string;
     is_published: boolean;
+    teacher_name?: string; // Thêm tên giáo viên để hiển thị
 }
 
 export function TeacherLessons() {
@@ -28,6 +29,7 @@ export function TeacherLessons() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+    const [viewFilter, setViewFilter] = useState<'my' | 'all'>('my');
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -51,10 +53,20 @@ export function TeacherLessons() {
         if (!profile) return;
 
         try {
-            const q = query(
-                collection(db, 'lessons'),
-                where('teacher_id', '==', profile.id)
-            );
+            let q;
+            if (viewFilter === 'my') {
+                // Chỉ lấy bài giảng của giáo viên hiện tại
+                q = query(
+                    collection(db, 'lessons'),
+                    where('teacher_id', '==', profile.id)
+                );
+            } else {
+                // Lấy tất cả bài giảng
+                q = query(
+                    collection(db, 'lessons')
+                );
+            }
+
             const querySnapshot = await getDocs(q);
 
             const lessonsData = querySnapshot.docs.map(doc => ({
@@ -62,20 +74,46 @@ export function TeacherLessons() {
                 ...doc.data()
             })) as Lesson[];
 
+            // Lấy thông tin tên giáo viên cho mỗi bài giảng
+            const lessonsWithTeacherNames = await Promise.all(
+                lessonsData.map(async (lesson) => {
+                    try {
+                        const teacherDoc = await getDoc(doc(db, 'profiles', lesson.teacher_id));
+                        if (teacherDoc.exists()) {
+                            const teacherData = teacherDoc.data();
+                            return {
+                                ...lesson,
+                                teacher_name: teacherData.full_name || teacherData.email || 'Giáo viên'
+                            };
+                        }
+                        return {
+                            ...lesson,
+                            teacher_name: 'Giáo viên'
+                        };
+                    } catch (error) {
+                        console.error('Error fetching teacher name:', error);
+                        return {
+                            ...lesson,
+                            teacher_name: 'Giáo viên'
+                        };
+                    }
+                })
+            );
+
             // Sort in JavaScript instead of Firestore
-            lessonsData.sort((a, b) => {
+            lessonsWithTeacherNames.sort((a, b) => {
                 const dateA = toDate(a.created_at);
                 const dateB = toDate(b.created_at);
                 return dateB.getTime() - dateA.getTime();
             });
 
-            setLessons(lessonsData);
+            setLessons(lessonsWithTeacherNames);
         } catch (error) {
             console.error('Error fetching lessons:', error);
         } finally {
             setLoading(false);
         }
-    }, [profile]);
+    }, [profile, viewFilter]);
 
     useEffect(() => {
         if (profile) {
@@ -223,27 +261,52 @@ export function TeacherLessons() {
                                         <p className="text-gray-600 mt-1">Quản lý và tạo bài giảng cho học sinh</p>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => {
-                                        setShowCreateModal(true);
-                                        setEditingLesson(null);
-                                        setFormData({
-                                            title: '',
-                                            description: '',
-                                            content: '',
-                                            type: 'text',
-                                            file_url: '',
-                                            file_name: '',
-                                            youtube_url: '',
-                                            youtube_id: '',
-                                            is_published: true
-                                        });
-                                    }}
-                                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                                >
-                                    <Plus className="w-5 h-5" />
-                                    Tạo bài giảng
-                                </button>
+                                <div className="flex items-center gap-4">
+                                    {/* Filter Buttons */}
+                                    <div className="flex items-center gap-2 bg-gray-100 rounded-xl p-1">
+                                        <button
+                                            onClick={() => setViewFilter('my')}
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${viewFilter === 'my'
+                                                ? 'bg-white text-blue-600 shadow-sm'
+                                                : 'text-gray-600 hover:text-gray-900'
+                                                }`}
+                                        >
+                                            <User className="w-4 h-4" />
+                                            Bài giảng của tôi
+                                        </button>
+                                        <button
+                                            onClick={() => setViewFilter('all')}
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${viewFilter === 'all'
+                                                ? 'bg-white text-blue-600 shadow-sm'
+                                                : 'text-gray-600 hover:text-gray-900'
+                                                }`}
+                                        >
+                                            <Users className="w-4 h-4" />
+                                            Tất cả bài giảng
+                                        </button>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setShowCreateModal(true);
+                                            setEditingLesson(null);
+                                            setFormData({
+                                                title: '',
+                                                description: '',
+                                                content: '',
+                                                type: 'text',
+                                                file_url: '',
+                                                file_name: '',
+                                                youtube_url: '',
+                                                youtube_id: '',
+                                                is_published: true
+                                            });
+                                        }}
+                                        className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                                    >
+                                        <Plus className="w-5 h-5" />
+                                        Tạo bài giảng
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -599,6 +662,12 @@ export function TeacherLessons() {
                                                     <Clock className="w-4 h-4" />
                                                     Cập nhật: {toDate(lesson.updated_at).toLocaleDateString('vi-VN')}
                                                 </span>
+                                                {viewFilter === 'all' && lesson.teacher_name && (
+                                                    <span className="flex items-center gap-1">
+                                                        <User className="w-4 h-4" />
+                                                        Tác giả: {lesson.teacher_name}
+                                                    </span>
+                                                )}
                                             </div>
 
                                             {lesson.type === 'text' && lesson.content && (
@@ -640,20 +709,32 @@ export function TeacherLessons() {
                                         </div>
 
                                         <div className="flex gap-2 ml-4">
-                                            <button
-                                                onClick={() => handleEdit(lesson)}
-                                                className="flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200 font-medium"
-                                            >
-                                                <Edit className="w-4 h-4" />
-                                                Chỉnh sửa
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(lesson.id)}
-                                                className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 font-medium"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                                Xóa
-                                            </button>
+                                            {/* Chỉ hiển thị nút chỉnh sửa/xóa cho bài giảng của chính giáo viên */}
+                                            {lesson.teacher_id === profile?.id && (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleEdit(lesson)}
+                                                        className="flex items-center gap-2 px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200 font-medium"
+                                                    >
+                                                        <Edit className="w-4 h-4" />
+                                                        Chỉnh sửa
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(lesson.id)}
+                                                        className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200 font-medium"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                        Xóa
+                                                    </button>
+                                                </>
+                                            )}
+                                            {/* Hiển thị badge cho bài giảng của giáo viên khác */}
+                                            {lesson.teacher_id !== profile?.id && (
+                                                <div className="flex items-center gap-2 px-4 py-2 text-sm text-gray-500 bg-gray-100 rounded-xl">
+                                                    <User className="w-4 h-4" />
+                                                    Bài giảng của {lesson.teacher_name}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

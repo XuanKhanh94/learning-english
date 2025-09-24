@@ -159,6 +159,11 @@ service cloud.firestore {
       allow read: if request.auth != null && 
         request.auth.uid == resource.data.teacher_id;
       
+      // Teachers can also read all lessons (to view other teachers' lessons)
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher';
+      
       // Students can read published lessons
       allow read: if request.auth != null &&
         resource.data.is_published == true &&
