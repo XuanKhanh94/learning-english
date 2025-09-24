@@ -686,7 +686,7 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex-1 overflow-y-auto scrollbar-hide p-6">
                 {/* Comments List */}
                 <div className="space-y-4 mb-6">
                   {comments[selectedSubmissionForComments]?.map((comment) => (

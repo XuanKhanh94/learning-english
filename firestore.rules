@@ -142,5 +142,48 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && 
         request.auth.uid == resource.data.user_id;
     }
+    
+    // Lessons collection
+    match /lessons/{lessonId} {
+      // Teachers can create and manage their own lessons
+      allow create: if request.auth != null && 
+        request.auth.uid == request.resource.data.teacher_id &&
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher';
+      
+      // Teachers can update and delete their own lessons
+      allow update, delete: if request.auth != null && 
+        request.auth.uid == resource.data.teacher_id;
+      
+      // Teachers can read their own lessons
+      allow read: if request.auth != null && 
+        request.auth.uid == resource.data.teacher_id;
+      
+      // Students can read published lessons
+      allow read: if request.auth != null &&
+        resource.data.is_published == true &&
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'student';
+      
+      // Admins can read all lessons
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+      
+      // List queries for teachers (their own lessons)
+      allow list: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher';
+      
+      // List queries for students (published lessons only)
+      allow list: if request.auth != null &&
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'student';
+      
+      // List queries for admins (all lessons)
+      allow list: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
   }
 }

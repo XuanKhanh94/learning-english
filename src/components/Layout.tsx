@@ -123,12 +123,14 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
           { id: 'dashboard', label: 'Tổng quan', icon: BookOpen },
           { id: 'assignments', label: 'Bài tập của tôi', icon: FileText },
           { id: 'create-assignment', label: 'Tạo bài tập', icon: Upload },
+          { id: 'lessons', label: 'Bài giảng', icon: BookOpen },
           { id: 'submissions', label: 'Bài nộp', icon: Download },
         ];
       case 'student':
         return [
           { id: 'dashboard', label: 'Tổng quan', icon: BookOpen },
           { id: 'assignments', label: 'Bài tập của tôi', icon: FileText },
+          { id: 'lessons', label: 'Bài giảng', icon: BookOpen },
           { id: 'submissions', label: 'Bài đã nộp', icon: Upload },
         ];
       default:
@@ -435,16 +437,16 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
   }, [profile]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="h-screen bg-gray-50 flex overflow-hidden">
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-y-auto scrollbar-hide">
         <div className="p-8">
           {children}
         </div>
       </div>
 
-      {/* Sidebar */}
-      <div className="w-64 bg-white shadow-lg">
+      {/* Sidebar - Fixed */}
+      <div className="w-64 bg-white shadow-lg flex-shrink-0 h-full overflow-y-auto scrollbar-hide">
         <div className="p-6 border-b">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -489,7 +491,7 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
                       </button>
                     )}
                   </div>
-                  <div className="max-h-64 overflow-y-auto">
+                  <div className="max-h-64 overflow-y-auto scrollbar-hide">
                     {notifications.length === 0 ? (
                       <div className="p-4 text-center text-gray-500 text-sm">
                         Không có thông báo mới

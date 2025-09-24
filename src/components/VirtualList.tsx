@@ -43,7 +43,7 @@ export function VirtualList<T>({
     return (
         <div
             ref={containerRef}
-            className={`overflow-auto ${className}`}
+            className={`overflow-auto scrollbar-hide ${className}`}
             style={{ height: containerHeight }}
             onScroll={handleScroll}
         >

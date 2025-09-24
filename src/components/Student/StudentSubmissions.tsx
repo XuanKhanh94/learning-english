@@ -205,14 +205,14 @@ export function StudentSubmissions() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 p-6">
+      <div className="bg-gray-100 p-6">
         <SkeletonList count={8} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="bg-gray-100 p-6">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Bài đã nộp</h1>
@@ -365,7 +365,7 @@ export function StudentSubmissions() {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6">
+                <div className="flex-1 overflow-y-auto scrollbar-hide p-6">
                   {/* Comments List */}
                   <div className="space-y-4 mb-6">
                     {comments[selectedSubmission]?.map((comment) => (

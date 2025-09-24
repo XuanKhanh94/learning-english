@@ -199,7 +199,7 @@ export function StudentAssignments() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 p-6">
+      <div className="bg-gray-100 p-6">
         <SkeletonList count={6} />
       </div>
     );

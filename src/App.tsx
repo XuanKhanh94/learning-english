@@ -22,6 +22,18 @@ const CreateAssignment = React.lazy(() =>
   }))
 );
 
+const TeacherLessons = React.lazy(() =>
+  import('./components/Teacher/TeacherLessons').then(module => ({
+    default: module.TeacherLessons
+  }))
+);
+
+const StudentLessons = React.lazy(() =>
+  import('./components/Student/StudentLessons').then(module => ({
+    default: module.StudentLessons
+  }))
+);
+
 const TeacherAssignments = React.lazy(() =>
   import('./components/Teacher/TeacherAssignments').then(module => ({
     default: module.TeacherAssignments
@@ -108,6 +120,12 @@ function App() {
               <CreateAssignment />
             </Suspense>
           );
+        case 'lessons':
+          return (
+            <Suspense fallback={<LoadingSpinner />}>
+              <TeacherLessons />
+            </Suspense>
+          );
         case 'submissions':
           return (
             <Suspense fallback={<LoadingSpinner />}>
@@ -134,6 +152,12 @@ function App() {
           return (
             <Suspense fallback={<LoadingSpinner />}>
               <StudentAssignments />
+            </Suspense>
+          );
+        case 'lessons':
+          return (
+            <Suspense fallback={<LoadingSpinner />}>
+              <StudentLessons />
             </Suspense>
           );
         case 'submissions':
