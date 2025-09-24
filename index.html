@@ -1,13 +1,48 @@
 <!doctype html>
-<html lang="en">
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#3b82f6" />
+    <meta name="description" content="Platform for learning English with assignments and submissions" />
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/src/main.tsx" as="script" />
+    <link rel="preload" href="/src/index.css" as="style" />
+    
+    <!-- DNS prefetch for external domains -->
+    <link rel="dns-prefetch" href="//firebase.googleapis.com" />
+    <link rel="dns-prefetch" href="//firestore.googleapis.com" />
+    <link rel="dns-prefetch" href="//storage.googleapis.com" />
+    
+    <!-- Preconnect to Firebase -->
+    <link rel="preconnect" href="https://firebase.googleapis.com" />
+    <link rel="preconnect" href="https://firestore.googleapis.com" />
+    <link rel="preconnect" href="https://storage.googleapis.com" />
+    
     <title>Hệ thống học trực tuyến</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              ('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+              ('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
   </body>
 </html>

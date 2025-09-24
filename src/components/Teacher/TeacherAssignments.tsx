@@ -1,16 +1,14 @@
-// TeacherAssignments.tsx (chỉnh sửa rút gọn, bỏ upload file mới)
-import React, { useState, useEffect } from 'react';
+// TeacherAssignments.tsx (tối ưu hóa hiệu suất)
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  collection,
-  getDocs,
-  query,
-  where,
   updateDoc,
-  doc
+  doc,
+  deleteDoc
 } from 'firebase/firestore';
 import { db, Assignment } from '../../lib/firebase';
+import { firebaseCache } from '../../lib/firebase-cache';
 import { useAuth } from '../../hooks/useAuth';
-import { FileText, Calendar, Download, Edit, Trash2 } from 'lucide-react';
+import { Calendar, Download, Edit, Trash2 } from 'lucide-react';
 import { message, Modal, Form, Input, DatePicker } from 'antd';
 import dayjs from 'dayjs';
 
@@ -25,38 +23,28 @@ export function TeacherAssignments() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    if (profile) {
-      fetchAssignments();
-    }
-  }, [profile]);
-
-  const fetchAssignments = async () => {
+  const fetchAssignments = useCallback(async () => {
     if (!profile) return;
 
     try {
-      const q = query(
-        collection(db, 'assignments'),
-        where('teacher_id', '==', profile.id)
-      );
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await firebaseCache.getAssignmentsByTeacher(profile.id);
 
       const assignmentsData = querySnapshot.docs.map(docSnap => ({
         id: docSnap.id,
         ...docSnap.data()
       })) as Assignment[];
 
-      // Sort theo created_at (desc)
+      // Sort theo created_at (desc) - already sorted by query
       const sortedAssignments = assignmentsData.sort((a, b) => {
         const dateA = a.created_at
-          ? (a.created_at.toDate
-            ? a.created_at.toDate().getTime()
-            : new Date(a.created_at).getTime())
+          ? (typeof a.created_at === 'object' && a.created_at !== null && 'toDate' in a.created_at
+            ? (a.created_at as { toDate: () => Date }).toDate().getTime()
+            : new Date(a.created_at as string).getTime())
           : 0;
         const dateB = b.created_at
-          ? (b.created_at.toDate
-            ? b.created_at.toDate().getTime()
-            : new Date(b.created_at).getTime())
+          ? (typeof b.created_at === 'object' && b.created_at !== null && 'toDate' in b.created_at
+            ? (b.created_at as { toDate: () => Date }).toDate().getTime()
+            : new Date(b.created_at as string).getTime())
           : 0;
         return dateB - dateA;
       });
@@ -76,32 +64,43 @@ export function TeacherAssignments() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [profile]);
 
-  const toDate = (ts: any): Date | null => {
+  useEffect(() => {
+    if (profile) {
+      fetchAssignments();
+    }
+  }, [profile, fetchAssignments]);
+
+  // Memoized utility functions
+  const toDate = useCallback((ts: unknown): Date | null => {
     if (!ts) return null;
     try {
-      if (ts.toDate) return ts.toDate();
-      if (ts.seconds) return new Date(ts.seconds * 1000);
-      return new Date(ts);
+      if (typeof ts === 'object' && ts !== null && 'toDate' in ts) {
+        return (ts as { toDate: () => Date }).toDate();
+      }
+      if (typeof ts === 'object' && ts !== null && 'seconds' in ts) {
+        return new Date((ts as { seconds: number }).seconds * 1000);
+      }
+      return new Date(ts as string | number);
     } catch {
       return null;
     }
-  };
+  }, []);
 
-  const formatDate = (timestamp: any) => {
+  const formatDate = useCallback((timestamp: unknown) => {
     if (!timestamp) return '';
     const date = toDate(timestamp);
     return date ? date.toLocaleDateString('vi-VN') : 'Ngày không hợp lệ';
-  };
+  }, [toDate]);
 
-  const formatDateTime = (timestamp: any) => {
+  const formatDateTime = useCallback((timestamp: unknown) => {
     if (!timestamp) return '';
     const date = toDate(timestamp);
     return date ? date.toLocaleString('vi-VN') : 'Ngày không hợp lệ';
-  };
+  }, [toDate]);
 
-  const downloadFile = async (fileUrl: string, fileName: string) => {
+  const downloadFile = useCallback(async (fileUrl: string, fileName: string) => {
     try {
       const response = await fetch(fileUrl);
       if (!response.ok) throw new Error('Network error');
@@ -121,7 +120,7 @@ export function TeacherAssignments() {
       console.error('Error downloading file:', error);
       message.error('Lỗi khi tải file, vui lòng thử lại!');
     }
-  };
+  }, []);
 
   const confirmDelete = (assignmentId: string) => {
     Modal.confirm({
@@ -134,15 +133,17 @@ export function TeacherAssignments() {
     });
   };
 
-  const handleDelete = async (assignmentId: string) => {
+  const handleDelete = useCallback(async (assignmentId: string) => {
     try {
+      await deleteDoc(doc(db, 'assignments', assignmentId));
       setAssignments(prev => prev.filter(a => a.id !== assignmentId));
+      firebaseCache.invalidateAssignmentCache(profile?.id);
       message.success('Đã xóa bài tập thành công');
     } catch (error) {
       console.error('Error deleting assignment:', error);
       message.error('Xóa bài tập thất bại');
     }
-  };
+  }, [profile?.id]);
 
   // mở modal chỉnh sửa
   const openEditModal = (assignment: Assignment) => {
@@ -156,14 +157,14 @@ export function TeacherAssignments() {
     setEditModalVisible(true);
   };
 
-  const handleEditSave = async () => {
+  const handleEditSave = useCallback(async () => {
     try {
       const values = await form.validateFields();
       if (!editingAssignment) return;
 
       setSavingEdit(true);
 
-      const updatedData: any = {
+      const updatedData: Record<string, unknown> = {
         title: values.title,
         description: values.description,
         due_date: values.due_date ? values.due_date.toDate() : null,
@@ -182,19 +183,85 @@ export function TeacherAssignments() {
         )
       );
 
+      firebaseCache.invalidateAssignmentCache(profile?.id);
       message.success('Cập nhật bài tập thành công');
       setEditModalVisible(false);
       setEditingAssignment(null);
       form.resetFields();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to save edit:', err);
-      if (!err?.errorFields) {
+      if (!(err as { errorFields?: unknown })?.errorFields) {
         message.error('Lưu thay đổi thất bại. Vui lòng thử lại.');
       }
     } finally {
       setSavingEdit(false);
     }
-  };
+  }, [editingAssignment, form, profile?.id]);
+
+  // Memoized assignment card component
+  const AssignmentCard = React.memo(({ assignment }: { assignment: Assignment }) => (
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            {assignment.title}
+          </h3>
+
+          {assignment.description && (
+            <p className="text-gray-700 mb-4">
+              {assignment.description}
+            </p>
+          )}
+
+          <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+            <span className="flex items-center gap-1">
+              <Calendar className="w-4 h-4" />
+              Tạo: {formatDate(assignment.created_at)}
+            </span>
+            {assignment.due_date && (
+              <span className="flex items-center gap-1">
+                <Calendar className="w-4 h-4" />
+                Hạn nộp: {formatDateTime(assignment.due_date)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 ml-4">
+          {assignment.file_url && (
+            <button
+              onClick={() =>
+                downloadFile(
+                  assignment.file_url!,
+                  assignment.file_name || 'assignment'
+                )
+              }
+              className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Tải file
+            </button>
+          )}
+
+          <button
+            onClick={() => openEditModal(assignment)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <Edit className="w-4 h-4" />
+            Chỉnh sửa
+          </button>
+
+          <button
+            onClick={() => confirmDelete(assignment.id!)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Xóa
+          </button>
+        </div>
+      </div>
+    </div>
+  ));
 
   if (loading) {
     return (
@@ -214,70 +281,7 @@ export function TeacherAssignments() {
       {assignments.length > 0 && (
         <div className="grid gap-6">
           {assignments.map((assignment) => (
-            <div
-              key={assignment.id}
-              className="bg-white rounded-lg shadow-md p-6"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {assignment.title}
-                  </h3>
-
-                  {assignment.description && (
-                    <p className="text-gray-700 mb-4">
-                      {assignment.description}
-                    </p>
-                  )}
-
-                  <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-4 h-4" />
-                      Tạo: {formatDate(assignment.created_at)}
-                    </span>
-                    {assignment.due_date && (
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        Hạn nộp: {formatDateTime(assignment.due_date)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2 ml-4">
-                  {assignment.file_url && (
-                    <button
-                      onClick={() =>
-                        downloadFile(
-                          assignment.file_url!,
-                          assignment.file_name || 'assignment'
-                        )
-                      }
-                      className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    >
-                      <Download className="w-4 h-4" />
-                      Tải file
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => openEditModal(assignment)}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                  >
-                    <Edit className="w-4 h-4" />
-                    Chỉnh sửa
-                  </button>
-
-                  <button
-                    onClick={() => confirmDelete(assignment.id!)}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Xóa
-                  </button>
-                </div>
-              </div>
-            </div>
+            <AssignmentCard key={assignment.id} assignment={assignment} />
           ))}
         </div>
       )}

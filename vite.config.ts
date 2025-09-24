@@ -7,22 +7,71 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          firebase: ['firebase/firestore', 'firebase/auth'],
-          ui: ['lucide-react']
+        manualChunks: (id) => {
+          // Vendor chunks
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-vendor';
+            }
+            if (id.includes('firebase')) {
+              return 'firebase-vendor';
+            }
+            if (id.includes('antd')) {
+              return 'antd-vendor';
+            }
+            if (id.includes('lucide-react')) {
+              return 'icons-vendor';
+            }
+            return 'vendor';
+          }
+
+          // Component chunks
+          if (id.includes('/components/Admin/')) {
+            return 'admin-components';
+          }
+          if (id.includes('/components/Teacher/')) {
+            return 'teacher-components';
+          }
+          if (id.includes('/components/Student/')) {
+            return 'student-components';
+          }
+          if (id.includes('/components/Auth/')) {
+            return 'auth-components';
+          }
         }
       }
     },
-    chunkSizeWarningLimit: 1000
+    chunkSizeWarningLimit: 1000,
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
+    sourcemap: false, // Disable sourcemaps in production for smaller bundle
   },
   optimizeDeps: {
-    include: ['react', 'react-dom'],  // ✅ đặt đúng chỗ
+    include: [
+      'react',
+      'react-dom',
+      'firebase/app',
+      'firebase/auth',
+      'firebase/firestore',
+      'firebase/storage',
+      'antd',
+      'dayjs'
+    ],
     exclude: ['lucide-react']
   },
   server: {
     hmr: {
       overlay: false
     }
+  },
+  // Enable gzip compression
+  define: {
+    __VUE_OPTIONS_API__: false,
+    __VUE_PROD_DEVTOOLS__: false,
   }
 });

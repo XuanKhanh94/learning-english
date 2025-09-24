@@ -6,8 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:analyze": "vite build --mode analyze",
+    "build:prod": "NODE_ENV=production vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "lint:fix": "eslint . --fix",
+    "preview": "vite preview",
+    "preview:build": "npm run build && npm run preview"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.8",

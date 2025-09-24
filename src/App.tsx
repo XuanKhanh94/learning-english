@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from './lib/firebase';
+import { firebaseCache } from './lib/firebase-cache';
 import { useAuth } from './hooks/useAuth';
 import { AuthContainer } from './components/Auth/AuthContainer';
 import { Layout } from './components/Layout';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { BookOpen, Users, FileText, TrendingUp } from 'lucide-react';
 
 // Lazy load components for better performance
@@ -151,9 +153,11 @@ function App() {
   };
 
   return (
-    <Layout activeTab={activeTab} onTabChange={setActiveTab}>
-      {renderContent()}
-    </Layout>
+    <ErrorBoundary>
+      <Layout activeTab={activeTab} onTabChange={setActiveTab}>
+        {renderContent()}
+      </Layout>
+    </ErrorBoundary>
   );
 }
 
@@ -172,60 +176,41 @@ const TeacherDashboard = React.memo(function TeacherDashboard({
   const [loading, setLoading] = useState(true);
 
   // Memoize the fetch function to prevent recreation on every render
-  const fetchTeacherStats = useMemo(() => async () => {
+  const fetchTeacherStats = useCallback(async () => {
     if (!profile) return;
 
     try {
-      // Fetch assignments created by this teacher
-      const assignmentsQuery = query(
-        collection(db, 'assignments'),
-        where('teacher_id', '==', profile.id)
-      );
-      const assignmentsSnapshot = await getDocs(assignmentsQuery);
+      // Use cached data when possible
+      const assignmentsSnapshot = await firebaseCache.getAssignmentsByTeacher(profile.id);
       const totalAssignments = assignmentsSnapshot.docs.length;
       const teacherAssignmentIds = assignmentsSnapshot.docs.map(doc => doc.id);
 
       if (teacherAssignmentIds.length === 0) {
         setStats({ totalAssignments: 0, totalStudents: 0, pendingSubmissions: 0 });
+        setLoading(false);
         return;
       }
 
-      // Optimize: Use Promise.all for parallel queries
-      const [studentQueries, submissionQueries] = await Promise.all([
-        // Get all assignment-student relationships
-        Promise.all(
-          teacherAssignmentIds.map(assignmentId =>
-            getDocs(query(
-              collection(db, 'assignment_students'),
-              where('assignment_id', '==', assignmentId)
-            ))
-          )
-        ),
-        // Get all pending submissions
-        Promise.all(
-          teacherAssignmentIds.map(assignmentId =>
-            getDocs(query(
-              collection(db, 'submissions'),
-              where('assignment_id', '==', assignmentId),
-              where('status', '==', 'submitted')
-            ))
-          )
-        )
-      ]);
+      // Get pending submissions using cache
+      const pendingSubmissionsSnapshot = await firebaseCache.getPendingSubmissions(profile.id);
+      const pendingSubmissions = pendingSubmissionsSnapshot.docs.length;
 
-      // Count unique students
+      // Get unique students count
+      const studentQueries = await Promise.all(
+        teacherAssignmentIds.map(assignmentId =>
+          getDocs(query(
+            collection(db, 'assignment_students'),
+            where('assignment_id', '==', assignmentId)
+          ))
+        )
+      );
+
       const uniqueStudents = new Set<string>();
       studentQueries.forEach(snapshot => {
         snapshot.docs.forEach(doc => {
           uniqueStudents.add(doc.data().student_id);
         });
       });
-
-      // Count pending submissions
-      const pendingSubmissions = submissionQueries.reduce(
-        (total, snapshot) => total + snapshot.docs.length,
-        0
-      );
 
       setStats({
         totalAssignments,
@@ -245,7 +230,7 @@ const TeacherDashboard = React.memo(function TeacherDashboard({
     }
   }, [profile, fetchTeacherStats]);
 
-  const handlePendingClick = useMemo(() => () => {
+  const handlePendingClick = useCallback(() => {
     if (onTabChange) {
       onTabChange('pending-submissions');
     }
@@ -321,7 +306,7 @@ const StudentDashboard = React.memo(function StudentDashboard() {
   const [loading, setLoading] = useState(true);
 
   // Memoize the fetch function
-  const fetchStudentStats = useMemo(() => async () => {
+  const fetchStudentStats = useCallback(async () => {
     if (!profile) return;
 
     try {
