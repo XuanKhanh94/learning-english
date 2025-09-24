@@ -3,7 +3,7 @@ import { collection, getDocs, addDoc, query, where, orderBy, serverTimestamp, do
 import { db, Assignment, AssignmentStudent, Submission } from '../../lib/firebase';
 import { uploadToCloudinary } from '../../lib/cloudinary';
 import { useAuth } from '../../hooks/useAuth';
-import { Download, Upload, Clock, CheckCircle, AlertCircle, Calendar, FileText } from 'lucide-react';
+import { Download, Upload, Clock, CheckCircle, AlertCircle, Calendar, FileText, FileDown } from 'lucide-react';
 import { SkeletonList } from '../Skeletons';
 
 export function StudentAssignments() {
@@ -221,14 +221,14 @@ export function StudentAssignments() {
           </p>
         </div>
       ) : (
-        <div className="grid gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 hd-1366-grid-cols-3 gap-4 sm:gap-6">
           {assignments.map((assignment) => (
-            <div key={assignment.id} className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-start justify-between">
+            <div key={assignment.id} className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2">
                     {getStatusIcon(assignment)}
-                    <h3 className="text-lg font-semibold text-gray-900">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                       {assignment.assignment?.title}
                     </h3>
                   </div>
@@ -272,8 +272,9 @@ export function StudentAssignments() {
                   )}
                 </div>
 
-                <div className="flex flex-col gap-2 ml-4">
-                  {assignment.assignment?.file_url && (
+                <div className="flex flex-row sm:flex-col gap-2 sm:ml-4">
+                  {/* Hiển thị file đơn lẻ (tương thích ngược) */}
+                  {assignment.assignment?.file_url && !assignment.assignment?.files && (
                     <button
                       onClick={() => downloadFile(assignment.assignment!.file_url!, assignment.assignment!.file_name!)}
                       className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -281,6 +282,41 @@ export function StudentAssignments() {
                       <Download className="w-4 h-4" />
                       Tải đề bài
                     </button>
+                  )}
+
+                  {/* Hiển thị nhiều file */}
+                  {assignment.assignment?.files && assignment.assignment.files.length > 0 && (
+                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <FileDown className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-800">File đề bài</span>
+                        <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                          {assignment.assignment.files.length} file
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {assignment.assignment.files.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-blue-200">
+                            <div className="flex items-center gap-2">
+                              <FileText className="w-4 h-4 text-blue-500" />
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{file.file_name}</p>
+                                {file.description && (
+                                  <p className="text-xs text-gray-600">{file.description}</p>
+                                )}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => downloadFile(file.file_url, file.file_name)}
+                              className="flex items-center gap-1 px-2 py-1 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded transition-colors"
+                            >
+                              <Download className="w-3 h-3" />
+                              Tải
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   )}
 
                   {!assignment.submission && (

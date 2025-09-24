@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { collection, getDocs, query, where, doc, updateDoc, getDoc, addDoc, serverTimestamp, getCountFromServer, documentId } from 'firebase/firestore';
-import { db, Submission, Assignment, Profile, Comment } from '../../lib/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, storage, Submission, Assignment, Profile, Comment, ReturnedFile } from '../../lib/firebase';
 import { useAuth } from '../../hooks/useAuth';
-import { Download, Star, MessageSquare, Calendar, User, FileText, CheckCircle, Clock, AlertCircle, Send } from 'lucide-react';
+import { Download, Star, MessageSquare, Calendar, User, FileText, CheckCircle, Clock, AlertCircle, Send, Edit, FileCheck, Upload, X, Plus } from 'lucide-react';
 import { VirtualList } from '../VirtualList';
 import { SkeletonList } from '../Skeletons';
 
@@ -18,8 +19,14 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
   const [loading, setLoading] = useState(true);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [showGradeModal, setShowGradeModal] = useState(false);
+  const [showReturnModal, setShowReturnModal] = useState(false);
   const [grade, setGrade] = useState('');
   const [feedback, setFeedback] = useState('');
+  const [teacherFeedback, setTeacherFeedback] = useState('');
+  const [correctedContent, setCorrectedContent] = useState('');
+  const [returnedFiles, setReturnedFiles] = useState<File[]>([]);
+  const [fileDescriptions, setFileDescriptions] = useState<{ [key: string]: string }>({});
+  const [uploading, setUploading] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [selectedSubmissionForComments, setSelectedSubmissionForComments] = useState<string | null>(null);
   const [comments, setComments] = useState<{ [key: string]: Comment[] }>({});
@@ -326,14 +333,99 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
     setSelectedSubmission(submission);
     setGrade(submission.grade?.toString() || '');
     setFeedback(submission.feedback || '');
+    setTeacherFeedback(submission.teacher_feedback || '');
+    setCorrectedContent(submission.corrected_content || '');
     setShowGradeModal(true);
+  };
+
+  const openReturnModal = (submission: Submission) => {
+    setSelectedSubmission(submission);
+    setReturnedFiles([]);
+    setFileDescriptions({});
+    setShowReturnModal(true);
   };
 
   const closeGradeModal = () => {
     setSelectedSubmission(null);
     setGrade('');
     setFeedback('');
+    setTeacherFeedback('');
+    setCorrectedContent('');
     setShowGradeModal(false);
+  };
+
+  const closeReturnModal = () => {
+    setSelectedSubmission(null);
+    setReturnedFiles([]);
+    setFileDescriptions({});
+    setShowReturnModal(false);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setReturnedFiles(prev => [...prev, ...files]);
+  };
+
+  const removeFile = (index: number) => {
+    setReturnedFiles(prev => prev.filter((_, i) => i !== index));
+    const fileName = returnedFiles[index]?.name;
+    if (fileName) {
+      setFileDescriptions(prev => {
+        const newDescriptions = { ...prev };
+        delete newDescriptions[fileName];
+        return newDescriptions;
+      });
+    }
+  };
+
+  const handleReturnSubmission = async () => {
+    if (!selectedSubmission || returnedFiles.length === 0) return;
+
+    setUploading(true);
+    try {
+      const uploadedFiles: ReturnedFile[] = [];
+
+      // Upload each file
+      for (const file of returnedFiles) {
+        const fileName = `${selectedSubmission.id}_${Date.now()}_${file.name}`;
+        const storageRef = ref(storage, `returned-files/${fileName}`);
+
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+
+        uploadedFiles.push({
+          file_url: downloadURL,
+          file_name: file.name,
+          uploaded_at: new Date().toISOString(),
+          description: fileDescriptions[file.name] || ''
+        });
+      }
+
+      // Update submission with returned files
+      await updateDoc(doc(db, 'submissions', selectedSubmission.id), {
+        returned_files: uploadedFiles,
+        returned_at: new Date().toISOString(),
+      });
+
+      // Update local state
+      setSubmissions(submissions.map(sub =>
+        sub.id === selectedSubmission.id
+          ? {
+            ...sub,
+            returned_files: uploadedFiles,
+            returned_at: new Date().toISOString()
+          }
+          : sub
+      ));
+
+      closeReturnModal();
+      alert('Trả bài thành công!');
+    } catch (error) {
+      console.error('Error returning submission:', error);
+      alert('Lỗi khi trả bài. Vui lòng thử lại.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleGradeSubmission = async () => {
@@ -358,7 +450,13 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
       // Update local state
       setSubmissions(submissions.map(sub =>
         sub.id === selectedSubmission.id
-          ? { ...sub, grade: gradeNumber, feedback: feedback.trim(), status: 'graded' as const, graded_at: new Date().toISOString() }
+          ? {
+            ...sub,
+            grade: gradeNumber,
+            feedback: feedback.trim(),
+            status: 'graded' as const,
+            graded_at: new Date().toISOString()
+          }
           : sub
       ));
 
@@ -483,12 +581,12 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
             itemHeight={184}
             containerHeight={600}
             renderItem={(submission) => (
-              <div key={submission.id} className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-start justify-between">
+              <div key={submission.id} className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-2">
                       {getStatusIcon(submission.status)}
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                         {submission.assignment?.title || 'Bài tập không xác định'}
                       </h3>
                     </div>
@@ -555,7 +653,7 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-2 ml-4">
+                  <div className="flex flex-row sm:flex-col gap-2 sm:ml-4">
                     <button
                       onClick={() => downloadFile(submission.file_url, submission.file_name)}
                       className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -571,6 +669,14 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
                       <Star className="w-4 h-4" />
                       {submission.status === 'graded' ? 'Sửa điểm' : 'Chấm điểm'}
                     </button>
+
+                    <button
+                      onClick={() => openReturnModal(submission)}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Trả bài
+                    </button>
                   </div>
                 </div>
               </div>
@@ -581,8 +687,8 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
 
       {/* Grade Modal */}
       {showGradeModal && selectedSubmission && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+          <div className="bg-white rounded-lg max-w-xs sm:max-w-md w-full p-4 sm:p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Chấm điểm bài nộp
             </h3>
@@ -643,6 +749,141 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
               >
                 {updating ? 'Đang lưu...' : 'Lưu điểm'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Return Modal */}
+      {showReturnModal && selectedSubmission && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-2 sm:p-4 z-50">
+          <div className="bg-white rounded-lg max-w-xs sm:max-w-md md:max-w-2xl w-full max-h-[95vh] sm:max-h-[80vh] flex flex-col">
+            <div className="p-4 sm:p-6 border-b">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+                Trả bài cho học sinh
+              </h3>
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                {selectedSubmission.assignment?.title || 'Bài tập không xác định'} - {selectedSubmission.student?.full_name || 'Học sinh không xác định'}
+              </p>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  <div className="flex items-center gap-2">
+                    <Upload className="w-4 h-4 text-purple-600" />
+                    Upload file bài tập đã chấm
+                  </div>
+                </label>
+
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    id="file-upload"
+                    accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                  />
+                  <label
+                    htmlFor="file-upload"
+                    className="cursor-pointer flex flex-col items-center gap-2"
+                  >
+                    <Plus className="w-8 h-8 text-gray-400" />
+                    <span className="text-sm text-gray-600">
+                      Click để chọn file hoặc kéo thả vào đây
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      Hỗ trợ: PDF, DOC, DOCX, TXT, JPG, PNG
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {returnedFiles.length > 0 && (
+                <div className="mb-6">
+                  <h4 className="text-sm font-medium text-gray-700 mb-3">
+                    File đã chọn ({returnedFiles.length})
+                  </h4>
+                  <div className="space-y-3">
+                    {returnedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        <FileText className="w-5 h-5 text-gray-500" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">{file.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Mô tả file (tùy chọn)"
+                          value={fileDescriptions[file.name] || ''}
+                          onChange={(e) => setFileDescriptions(prev => ({
+                            ...prev,
+                            [file.name]: e.target.value
+                          }))}
+                          className="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                        />
+                        <button
+                          onClick={() => removeFile(index)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-xs text-blue-600">💡</span>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-900 mb-1">
+                      Hướng dẫn trả bài
+                    </h4>
+                    <ul className="text-xs text-blue-700 space-y-1">
+                      <li>• Upload file bài tập đã chấm với feedback chi tiết</li>
+                      <li>• Có thể upload nhiều file (bài sửa, ghi chú, ví dụ...)</li>
+                      <li>• Thêm mô tả cho từng file để học sinh hiểu rõ hơn</li>
+                      <li>• Học sinh sẽ nhận được thông báo khi có bài trả</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 sm:p-6 border-t bg-gray-50">
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={closeReturnModal}
+                  disabled={uploading}
+                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  onClick={handleReturnSubmission}
+                  disabled={uploading || returnedFiles.length === 0}
+                  className="px-4 py-2 bg-purple-500 hover:bg-purple-600 disabled:bg-purple-300 text-white rounded-lg transition-colors flex items-center gap-2"
+                >
+                  {uploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Đang upload...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4" />
+                      Trả bài ({returnedFiles.length} file)
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

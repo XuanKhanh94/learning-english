@@ -8,10 +8,10 @@ import {
 import { db, Assignment } from '../../lib/firebase';
 import { firebaseCache } from '../../lib/firebase-cache';
 import { useAuth } from '../../hooks/useAuth';
-import { Calendar, Download, Edit, Trash2 } from 'lucide-react';
+import { Calendar, Download, Edit, Trash2, FileText } from 'lucide-react';
 import { message, Modal, Form, Input, DatePicker } from 'antd';
 import { SkeletonList } from '../Skeletons';
-import dayjs from 'dayjs';
+// Removed dayjs import - using native Date instead
 
 export function TeacherAssignments() {
   const { profile } = useAuth();
@@ -153,7 +153,7 @@ export function TeacherAssignments() {
     form.setFieldsValue({
       title: assignment.title || '',
       description: assignment.description || '',
-      due_date: dueDate ? dayjs(dueDate) : null,
+      due_date: dueDate, // DatePicker của Antd có thể nhận Date object trực tiếp
     });
     setEditModalVisible(true);
   };
@@ -168,7 +168,7 @@ export function TeacherAssignments() {
       const updatedData: Record<string, unknown> = {
         title: values.title,
         description: values.description,
-        due_date: values.due_date ? values.due_date.toDate() : null,
+        due_date: values.due_date ? (values.due_date instanceof Date ? values.due_date : values.due_date.toDate()) : null,
       };
 
       await updateDoc(doc(db, 'assignments', editingAssignment.id!), updatedData);
@@ -201,10 +201,10 @@ export function TeacherAssignments() {
 
   // Memoized assignment card component
   const AssignmentCard = React.memo(({ assignment }: { assignment: Assignment }) => (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex items-start justify-between">
+    <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
             {assignment.title}
           </h3>
 
@@ -228,8 +228,9 @@ export function TeacherAssignments() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-2 ml-4">
-          {assignment.file_url && (
+        <div className="flex flex-row sm:flex-col gap-2 sm:ml-4">
+          {/* Hiển thị file đơn lẻ (tương thích ngược) */}
+          {assignment.file_url && !assignment.files && (
             <button
               onClick={() =>
                 downloadFile(
@@ -242,6 +243,41 @@ export function TeacherAssignments() {
               <Download className="w-4 h-4" />
               Tải file
             </button>
+          )}
+
+          {/* Hiển thị nhiều file */}
+          {assignment.files && assignment.files.length > 0 && (
+            <div className="mb-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="w-4 h-4 text-blue-600" />
+                <span className="text-xs font-medium text-blue-800">
+                  {assignment.files.length} file
+                </span>
+              </div>
+              <div className="space-y-1">
+                {assignment.files.slice(0, 3).map((file, index) => (
+                  <div key={index} className="flex items-center justify-between p-1 bg-white rounded border border-blue-200">
+                    <div className="flex items-center gap-1">
+                      <FileText className="w-3 h-3 text-blue-500" />
+                      <span className="text-xs text-gray-900 truncate max-w-32">
+                        {file.file_name}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => downloadFile(file.file_url, file.file_name)}
+                      className="text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      <Download className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                {assignment.files.length > 3 && (
+                  <p className="text-xs text-blue-600 text-center">
+                    +{assignment.files.length - 3} file khác
+                  </p>
+                )}
+              </div>
+            </div>
           )}
 
           <button
@@ -269,14 +305,14 @@ export function TeacherAssignments() {
   }
 
   return (
-    <div>
+    <div className="px-4 sm:px-6 lg:px-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Bài tập của tôi</h1>
-        <p className="text-gray-600">Quản lý các bài tập đã tạo</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Bài tập của tôi</h1>
+        <p className="text-sm sm:text-base text-gray-600">Quản lý các bài tập đã tạo</p>
       </div>
 
       {assignments.length > 0 && (
-        <div className="grid gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 hd-1366-grid-cols-3 gap-4 sm:gap-6">
           {assignments.map((assignment) => (
             <AssignmentCard key={assignment.id} assignment={assignment} />
           ))}

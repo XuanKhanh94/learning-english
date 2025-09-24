@@ -85,13 +85,13 @@ const MenuItem = React.memo(({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${isActive
-        ? 'bg-blue-50 text-blue-600'
-        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+      className={`modern-btn w-full justify-start whitespace-nowrap ${isActive
+        ? 'modern-btn-primary'
+        : 'modern-btn-secondary'
         }`}
     >
-      <Icon className="w-5 h-5" />
-      {item.label}
+      <Icon className="modern-icon flex-shrink-0" />
+      <span className="text-sm sm:text-base hidden sm:inline lg:inline">{item.label}</span>
     </button>
   );
 });
@@ -437,30 +437,30 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
   }, [profile]);
 
   return (
-    <div className="h-screen bg-gray-50 flex overflow-hidden">
+    <div className="h-screen bg-gray-50 flex flex-col lg:flex-row overflow-hidden">
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto scrollbar-hide">
-        <div className="p-8">
+        <div className="p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </div>
 
       {/* Sidebar - Fixed */}
-      <div className="w-64 bg-white shadow-lg flex-shrink-0 h-full overflow-y-auto scrollbar-hide">
-        <div className="p-6 border-b">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-              <BookOpen className="w-6 h-6 text-white" />
+      <div className="w-full lg:w-64 modern-card flex-shrink-0 h-auto lg:h-full overflow-y-auto modern-scrollbar border-t lg:border-t-0 lg:border-l">
+        <div className="p-4 sm:p-6 border-b">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
+              <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Học và học</h1>
-              <p className="text-sm text-gray-500">Học trực tuyến</p>
+              <h1 className="modern-heading-3">Học và học</h1>
+              <p className="modern-text-muted">Học trực tuyến</p>
             </div>
           </div>
         </div>
 
         {/* User Info */}
-        <div className="p-4 border-b">
+        <div className="p-3 sm:p-4 border-b">
           <div className="flex items-center justify-between">
             {/* Notifications */}
             <div className="relative" ref={notificationRef}>
@@ -541,15 +541,17 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
         </div>
 
         {/* Menu */}
-        <nav className="p-4">
-          {menuItems.map((item) => (
-            <MenuItem
-              key={item.id}
-              item={item}
-              isActive={activeTab === item.id}
-              onClick={() => handleTabChange(item.id)}
-            />
-          ))}
+        <nav className="p-3 sm:p-4">
+          <div className="flex flex-row lg:flex-col gap-1 sm:gap-2 overflow-x-auto lg:overflow-x-visible">
+            {menuItems.map((item) => (
+              <MenuItem
+                key={item.id}
+                item={item}
+                isActive={activeTab === item.id}
+                onClick={() => handleTabChange(item.id)}
+              />
+            ))}
+          </div>
         </nav>
       </div>
     </div>

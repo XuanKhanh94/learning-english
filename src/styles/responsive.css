@@ -1,0 +1,281 @@
+/* Custom responsive styles for HD, FHD, and Mobile */
+
+/* Mobile First Approach */
+/* Base styles for mobile (320px - 640px) */
+@media (max-width: 640px) {
+    .mobile-hidden {
+        display: none !important;
+    }
+
+    .mobile-full {
+        width: 100% !important;
+    }
+
+    .mobile-text-sm {
+        font-size: 0.875rem !important;
+    }
+
+    .mobile-p-2 {
+        padding: 0.5rem !important;
+    }
+
+    .mobile-gap-2 {
+        gap: 0.5rem !important;
+    }
+}
+
+/* Small screens (640px - 768px) */
+@media (min-width: 640px) and (max-width: 768px) {
+    .sm-hidden {
+        display: none !important;
+    }
+}
+
+/* HD screens (768px - 1366px) */
+@media (min-width: 768px) and (max-width: 1366px) {
+    .hd-grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .hd-grid-cols-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+
+    .hd-max-w-4xl {
+        max-width: 56rem !important;
+    }
+
+    .hd-max-w-5xl {
+        max-width: 64rem !important;
+    }
+
+    .hd-text-lg {
+        font-size: 1.125rem !important;
+    }
+
+    .hd-p-6 {
+        padding: 1.5rem !important;
+    }
+
+    /* Specific fixes for 1366x768 */
+    .hd-modal-width {
+        max-width: 80vw !important;
+    }
+
+    .hd-card-padding {
+        padding: 1.25rem !important;
+    }
+
+    /* Fix button overflow on HD screens */
+    .hd-button-container {
+        flex-shrink: 0 !important;
+        min-width: 0 !important;
+    }
+
+    .hd-button-text {
+        font-size: 0.75rem !important;
+        white-space: nowrap !important;
+    }
+}
+
+/* Specific breakpoint for 1366x768 HD screens */
+@media (min-width: 1366px) and (max-width: 1366px) {
+    .hd-1366-grid-cols-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+
+    .hd-1366-modal-width {
+        max-width: 75vw !important;
+    }
+
+    .hd-1366-card-padding {
+        padding: 1rem !important;
+    }
+
+    /* Fix button overflow specifically for 1366x768 */
+    .hd-1366-button-container {
+        flex-shrink: 0 !important;
+        min-width: 0 !important;
+        max-width: 200px !important;
+    }
+
+    .hd-1366-button-text {
+        font-size: 0.75rem !important;
+        white-space: nowrap !important;
+    }
+
+    .hd-1366-button-padding {
+        padding: 0.5rem 0.75rem !important;
+    }
+}
+
+/* FHD screens (1367px - 1920px) */
+@media (min-width: 1367px) and (max-width: 1920px) {
+    .fhd-grid-cols-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+
+    .fhd-max-w-6xl {
+        max-width: 72rem !important;
+    }
+
+    .fhd-text-xl {
+        font-size: 1.25rem !important;
+    }
+
+    .fhd-p-8 {
+        padding: 2rem !important;
+    }
+}
+
+/* Large screens (1920px+) */
+@media (min-width: 1920px) {
+    .xl-grid-cols-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    }
+
+    .xl-max-w-7xl {
+        max-width: 80rem !important;
+    }
+
+    .xl-text-2xl {
+        font-size: 1.5rem !important;
+    }
+
+    .xl-p-10 {
+        padding: 2.5rem !important;
+    }
+}
+
+/* Custom scrollbar for better mobile experience */
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+
+/* Touch-friendly buttons for mobile */
+@media (max-width: 768px) {
+    .touch-target {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    .touch-text {
+        font-size: 16px;
+        /* Prevents zoom on iOS */
+    }
+}
+
+/* Modal responsive improvements */
+@media (max-width: 640px) {
+    .modal-mobile {
+        margin: 0.5rem;
+        max-height: calc(100vh - 1rem);
+        width: calc(100vw - 1rem);
+    }
+}
+
+/* Grid responsive improvements */
+.responsive-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+    .responsive-grid {
+        gap: 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .responsive-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem;
+    }
+}
+
+@media (min-width: 1280px) {
+    .responsive-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Card responsive improvements */
+.responsive-card {
+    padding: 1rem;
+    border-radius: 0.5rem;
+}
+
+@media (min-width: 640px) {
+    .responsive-card {
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .responsive-card {
+        padding: 2rem;
+        border-radius: 1rem;
+    }
+}
+
+/* Text responsive improvements */
+.responsive-text {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+}
+
+@media (min-width: 640px) {
+    .responsive-text {
+        font-size: 1rem;
+        line-height: 1.5rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .responsive-text {
+        font-size: 1.125rem;
+        line-height: 1.75rem;
+    }
+}
+
+/* Button responsive improvements */
+.responsive-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+}
+
+@media (min-width: 640px) {
+    .responsive-button {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+        border-radius: 0.5rem;
+    }
+}
+
+/* Icon responsive improvements */
+.responsive-icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+@media (min-width: 640px) {
+    .responsive-icon {
+        width: 1.25rem;
+        height: 1.25rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .responsive-icon {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
+}

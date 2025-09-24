@@ -3,7 +3,7 @@ import { collection, query, where, getDocs, doc, getDoc, addDoc, serverTimestamp
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../hooks/useAuth';
 import { Submission, Assignment, Comment, Profile } from '../../lib/firebase';
-import { FileText, Upload, MessageSquare, User, Send, Download, X } from 'lucide-react';
+import { FileText, Upload, MessageSquare, User, Send, Download, X, Edit, FileCheck, Star, FileDown } from 'lucide-react';
 import { SkeletonList } from '../Skeletons';
 
 export function StudentSubmissions() {
@@ -228,14 +228,14 @@ export function StudentSubmissions() {
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 hd-1366-grid-cols-3 gap-4 sm:gap-6">
             {submissions.map((submission) => (
-              <div key={submission.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div className="flex items-start justify-between">
+              <div key={submission.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Upload className="w-5 h-5 text-blue-500" />
-                      <h3 className="text-lg font-semibold text-gray-900">
+                    <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                      <Upload className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                         {submission.assignment?.title || 'Bài tập không xác định'}
                       </h3>
                     </div>
@@ -289,7 +289,76 @@ export function StudentSubmissions() {
                       </div>
                     )}
 
-                    <div className="flex items-center gap-4">
+                    {submission.teacher_feedback && (
+                      <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Edit className="w-4 h-4 text-green-600" />
+                          <span className="font-medium text-green-800">Feedback chi tiết từ giáo viên</span>
+                        </div>
+                        <p className="text-sm text-green-700 whitespace-pre-wrap">
+                          {submission.teacher_feedback}
+                        </p>
+                      </div>
+                    )}
+
+                    {submission.corrected_content && (
+                      <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <FileCheck className="w-4 h-4 text-yellow-600" />
+                          <span className="font-medium text-yellow-800">Bài làm đã được sửa</span>
+                        </div>
+                        <div className="text-sm text-yellow-700 whitespace-pre-wrap bg-white p-3 rounded border">
+                          {submission.corrected_content}
+                        </div>
+                        <p className="text-xs text-yellow-600 mt-2">
+                          💡 Tham khảo nội dung này để biết cách làm đúng
+                        </p>
+                      </div>
+                    )}
+
+                    {submission.returned_files && submission.returned_files.length > 0 && (
+                      <div className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                        <div className="flex items-center gap-2 mb-3">
+                          <FileDown className="w-4 h-4 text-purple-600" />
+                          <span className="font-medium text-purple-800">Bài tập đã được trả</span>
+                          <span className="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded-full">
+                            {submission.returned_files.length} file
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {submission.returned_files.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-purple-200">
+                              <div className="flex items-center gap-3">
+                                <FileText className="w-4 h-4 text-purple-500" />
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">{file.file_name}</p>
+                                  {file.description && (
+                                    <p className="text-xs text-gray-600">{file.description}</p>
+                                  )}
+                                  <p className="text-xs text-gray-500">
+                                    Upload: {toDate(file.uploaded_at as unknown).toLocaleString('vi-VN')}
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handleDownload(file.file_url, file.file_name)}
+                                className="flex items-center gap-1 px-3 py-1 text-xs text-purple-600 hover:text-purple-800 hover:bg-purple-100 rounded-lg transition-colors"
+                              >
+                                <Download className="w-3 h-3" />
+                                Tải xuống
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        {submission.returned_at && (
+                          <p className="text-xs text-purple-600 mt-2">
+                            📅 Trả bài lúc: {toDate(submission.returned_at as unknown).toLocaleString('vi-VN')}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex flex-row sm:flex-col gap-2 sm:gap-4">
                       <button
                         onClick={() => handleDownload(submission.file_url, submission.file_name)}
                         className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"

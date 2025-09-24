@@ -77,12 +77,20 @@ export interface Comment {
   user?: Profile | null;
 }
 
+export interface AssignmentFile {
+  file_url: string;
+  file_name: string;
+  uploaded_at: string;
+  description?: string; // Mô tả file (tùy chọn)
+}
+
 export interface Assignment {
   id: string;
   title: string;
   description?: string;
-  file_url?: string;
-  file_name?: string;
+  file_url?: string; // Giữ lại để tương thích ngược
+  file_name?: string; // Giữ lại để tương thích ngược
+  files?: AssignmentFile[]; // Danh sách file mới
   teacher_id: string;
   created_at: string;
   due_date?: string;
@@ -98,6 +106,13 @@ export interface AssignmentStudent {
   student?: Profile;
 }
 
+export interface ReturnedFile {
+  file_url: string;
+  file_name: string;
+  uploaded_at: string;
+  description?: string; // Mô tả file (tùy chọn)
+}
+
 export interface Submission {
   id: string;
   assignment_id: string;
@@ -107,8 +122,12 @@ export interface Submission {
   status: AssignmentStatus;
   grade?: number;
   feedback?: string;
+  teacher_feedback?: string; // Feedback chi tiết từ giáo viên
+  corrected_content?: string; // Nội dung đã được sửa
+  returned_files?: ReturnedFile[]; // Danh sách file đã trả cho học sinh
   submitted_at: string;
   graded_at?: string;
+  returned_at?: string; // Thời gian trả bài
   assignment?: Assignment;
   student?: Profile;
 }

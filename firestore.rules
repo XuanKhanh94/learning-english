@@ -88,6 +88,7 @@ service cloud.firestore {
         get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'student';
       
       // Teachers can read and update submissions for their assignments
+      // This includes updating grade, feedback, teacher_feedback, corrected_content, and status
       allow read, update, list: if request.auth != null && 
         exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher';
@@ -164,7 +165,8 @@ service cloud.firestore {
       allow read: if request.auth != null && 
         exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher' &&
-        resource.data.share_with_teachers == true;
+        resource.data.share_with_teachers == true &&
+        request.auth.uid in resource.data.shared_with_teachers;
       
       // Students can read published lessons
       allow read: if request.auth != null &&
@@ -191,6 +193,39 @@ service cloud.firestore {
       allow list: if request.auth != null && 
         exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+  }
+}
+
+// Storage rules for returned files
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Returned files - teachers can upload, students can read
+    match /returned-files/{fileName} {
+      // Teachers can upload returned files
+      allow write: if request.auth != null && 
+        exists(/databases/(default)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/(default)/documents/profiles/$(request.auth.uid)).data.role == 'teacher';
+      
+      // Students can read returned files
+      allow read: if request.auth != null && 
+        exists(/databases/(default)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/(default)/documents/profiles/$(request.auth.uid)).data.role == 'student';
+    }
+    
+    // Assignment files - teachers can upload, students can read
+    match /assignments/{teacherId}/{fileName} {
+      // Teachers can upload assignment files
+      allow write: if request.auth != null && 
+        exists(/databases/(default)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/(default)/documents/profiles/$(request.auth.uid)).data.role == 'teacher' &&
+        request.auth.uid == teacherId;
+      
+      // Students can read assignment files
+      allow read: if request.auth != null && 
+        exists(/databases/(default)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/(default)/documents/profiles/$(request.auth.uid)).data.role == 'student';
     }
   }
 }

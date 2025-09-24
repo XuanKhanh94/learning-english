@@ -17,9 +17,7 @@ const UserManagement = React.lazy(() =>
 );
 
 const CreateAssignment = React.lazy(() =>
-  import('./components/Teacher/CreateAssignment').then(module => ({
-    default: module.CreateAssignment
-  }))
+  import('./components/Teacher/CreateAssignment')
 );
 
 const TeacherLessons = React.lazy(() =>
