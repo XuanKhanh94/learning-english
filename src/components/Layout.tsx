@@ -304,6 +304,8 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
 
                 return finalComments;
               });
+            }, (error) => {
+              console.error('Error in comments snapshot listener (first):', error);
             });
 
             unsubscribes.push(batchUnsubscribe);
@@ -392,6 +394,8 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
 
                 return finalComments;
               });
+            }, (error) => {
+              console.error('Error in comments snapshot listener (second):', error);
             });
 
             unsubscribes.push(batchUnsubscribe);
