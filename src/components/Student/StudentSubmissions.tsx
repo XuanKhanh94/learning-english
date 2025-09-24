@@ -13,6 +13,22 @@ export function StudentSubmissions() {
   const [newComment, setNewComment] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
 
+  // Safe timestamp -> Date converter
+  const toDate = (ts: unknown): Date => {
+    if (!ts) return new Date(0);
+    try {
+      if (typeof ts === 'object' && ts !== null && 'toDate' in ts) {
+        return (ts as { toDate: () => Date }).toDate();
+      }
+      if (typeof ts === 'object' && ts !== null && 'seconds' in ts) {
+        return new Date((ts as { seconds: number }).seconds * 1000);
+      }
+      return new Date(ts as string | number | Date);
+    } catch {
+      return new Date(0);
+    }
+  };
+
   useEffect(() => {
     if (profile) {
       fetchSubmissions();
@@ -95,8 +111,8 @@ export function StudentSubmissions() {
 
       // Sort by submitted_at date (newest first)
       validSubmissions.sort((a, b) => {
-        const dateA = a.submitted_at ? new Date(a.submitted_at) : new Date(0);
-        const dateB = b.submitted_at ? new Date(b.submitted_at) : new Date(0);
+        const dateA = toDate(a.submitted_at as unknown);
+        const dateB = toDate(b.submitted_at as unknown);
         return dateB.getTime() - dateA.getTime();
       });
 
@@ -134,8 +150,8 @@ export function StudentSubmissions() {
 
       // Sort by created_at
       commentsData.sort((a, b) => {
-        const dateA = a.created_at?.seconds ? new Date(a.created_at.seconds * 1000) : new Date(a.created_at);
-        const dateB = b.created_at?.seconds ? new Date(b.created_at.seconds * 1000) : new Date(b.created_at);
+        const dateA = toDate(a.created_at as unknown);
+        const dateB = toDate(b.created_at as unknown);
         return dateB.getTime() - dateA.getTime();
       });
 
@@ -263,12 +279,12 @@ export function StudentSubmissions() {
                   <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
                     <span className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
-                      Nộp: {submission.submitted_at ? new Date(submission.submitted_at).toLocaleString('vi-VN') : 'Không xác định'}
+                      Nộp: {submission.submitted_at ? toDate(submission.submitted_at as unknown).toLocaleString('vi-VN') : 'Không xác định'}
                     </span>
                     {submission.graded_at && (
                       <span className="flex items-center gap-1">
                         <Star className="w-4 h-4" />
-                        Chấm: {submission.graded_at ? new Date(submission.graded_at).toLocaleString('vi-VN') : 'Không xác định'}
+                        Chấm: {submission.graded_at ? toDate(submission.graded_at as unknown).toLocaleString('vi-VN') : 'Không xác định'}
                       </span>
                     )}
                   </div>
@@ -327,8 +343,8 @@ export function StudentSubmissions() {
                                     {comment.user?.full_name || 'Unknown User'}
                                   </span>
                                   <span className={`text-xs px-2 py-1 rounded-full ${comment.user?.role === 'teacher'
-                                      ? 'bg-blue-100 text-blue-800'
-                                      : 'bg-green-100 text-green-800'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-green-100 text-green-800'
                                     }`}>
                                     {comment.user?.role === 'teacher' ? 'Giáo viên' : 'Học sinh'}
                                   </span>

@@ -473,7 +473,7 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
                       </span>
                       <span className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
-                        Nộp: {new Date(submission.submitted_at).toLocaleString('vi-VN')}
+                        Nộp: {toDate(submission.submitted_at as unknown).toLocaleString('vi-VN')}
                       </span>
                     </div>
 
