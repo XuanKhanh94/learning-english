@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Cài đặt tất cả dependencies (bao gồm devDependencies cho vite) và xóa cache
-RUN npm install && npm cache clean --force
+RUN npm install --legacy-peer-deps && npm install -D terser && npm cache clean --force
 
 # Sao chép toàn bộ mã nguồn vào thư mục làm việc
 COPY . .
