@@ -72,10 +72,15 @@ export function TeacherLessons() {
 
             const querySnapshot = await getDocs(q);
 
-            const lessonsData = querySnapshot.docs.map(doc => ({
+            let lessonsData = querySnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             })) as Lesson[];
+
+            // Lọc bỏ bài giảng của chính giáo viên khi xem "Tất cả bài giảng"
+            if (viewFilter === 'all') {
+                lessonsData = lessonsData.filter(lesson => lesson.teacher_id !== profile.id);
+            }
 
             // Lấy thông tin tên giáo viên cho mỗi bài giảng
             const lessonsWithTeacherNames = await Promise.all(
@@ -790,8 +795,8 @@ export function TeacherLessons() {
                                                     </button>
                                                 </>
                                             )}
-                                            {/* Hiển thị badge cho bài giảng của giáo viên khác */}
-                                            {lesson.teacher_id !== profile?.id && (
+                                            {/* Hiển thị badge cho bài giảng của giáo viên khác (chỉ khi xem "Tất cả bài giảng") */}
+                                            {viewFilter === 'all' && lesson.teacher_id !== profile?.id && (
                                                 <div className="flex items-center gap-2 px-4 py-2 text-sm text-gray-500 bg-gray-100 rounded-xl">
                                                     <User className="w-4 h-4" />
                                                     Bài giảng của {lesson.teacher_name}

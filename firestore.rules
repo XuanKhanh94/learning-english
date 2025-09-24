@@ -160,6 +160,7 @@ service cloud.firestore {
         request.auth.uid == resource.data.teacher_id;
       
       // Teachers can read lessons shared with them by other teachers
+      // Note: Client-side filtering ensures teachers don't see their own lessons in "all lessons" view
       allow read: if request.auth != null && 
         exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher' &&
