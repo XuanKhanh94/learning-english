@@ -122,6 +122,15 @@
     border-color: var(--primary-300);
 }
 
+/* Header card without hover effects */
+.modern-card-header {
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    transition: none;
+}
+
 .modern-card-elevated {
     background: var(--gray-50);
     backdrop-filter: blur(20px);
@@ -542,6 +551,16 @@
     transform: translateY(-2px);
     box-shadow: var(--shadow-xl);
     border-color: var(--primary-300);
+}
+
+/* Assignment card without hover effects */
+.assignment-card-static {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-lg);
+    transition: none;
+    cursor: pointer;
 }
 
 /* Submission Card Styles */

@@ -44,6 +44,16 @@ export function useAuth() {
       if (profileDoc.exists()) {
         const profileData = { id: profileDoc.id, ...profileDoc.data() } as Profile;
         ('✅ Profile found:', profileData);
+
+        // Check if user is disabled
+        if (profileData.disabled) {
+          ('🚫 User is disabled, signing out');
+          await firebaseSignOut(auth);
+          setProfile(null);
+          setError('Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên.');
+          return;
+        }
+
         setProfile(profileData);
       } else {
         ('❌ Profile not found, creating default profile');

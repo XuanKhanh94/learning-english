@@ -144,6 +144,81 @@ service cloud.firestore {
         request.auth.uid == resource.data.user_id;
     }
     
+    // Classes collection
+    match /classes/{classId} {
+      // Teachers can create and manage their own classes
+      allow create: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher';
+      
+      // Teachers can update and delete their own classes
+      allow update, delete: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher';
+      
+      // Teachers can read all classes
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher';
+      
+      // Students can read classes they are enrolled in
+      allow read: if request.auth != null &&
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'student';
+      
+      // Admins can read all classes
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+      
+      // List queries for teachers
+      allow list: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher';
+      
+      // List queries for students
+      allow list: if request.auth != null &&
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'student';
+      
+      // List queries for admins
+      allow list: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Class Students collection
+    match /class_students/{docId} {
+      // Teachers can create and manage class enrollments
+      allow create, update, delete: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher';
+      
+      // Teachers can read all class enrollments
+      allow read: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher';
+      
+      // Students can read their own enrollments
+      allow read: if request.auth != null && 
+        request.auth.uid == resource.data.student_id;
+      
+      // Students can query their own enrollments
+      allow list: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'student';
+      
+      // Teachers can list/query class students
+      allow list: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'teacher';
+      
+      // Admins can read all
+      allow read, list: if request.auth != null && 
+        exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    }
+    
     // Lessons collection
     match /lessons/{lessonId} {
       // Teachers can create and manage their own lessons
@@ -193,39 +268,6 @@ service cloud.firestore {
       allow list: if request.auth != null && 
         exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
         get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
-    }
-  }
-}
-
-// Storage rules for returned files
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    // Returned files - teachers can upload, students can read
-    match /returned-files/{fileName} {
-      // Teachers can upload returned files
-      allow write: if request.auth != null && 
-        exists(/databases/(default)/documents/profiles/$(request.auth.uid)) &&
-        get(/databases/(default)/documents/profiles/$(request.auth.uid)).data.role == 'teacher';
-      
-      // Students can read returned files
-      allow read: if request.auth != null && 
-        exists(/databases/(default)/documents/profiles/$(request.auth.uid)) &&
-        get(/databases/(default)/documents/profiles/$(request.auth.uid)).data.role == 'student';
-    }
-    
-    // Assignment files - teachers can upload, students can read
-    match /assignments/{teacherId}/{fileName} {
-      // Teachers can upload assignment files
-      allow write: if request.auth != null && 
-        exists(/databases/(default)/documents/profiles/$(request.auth.uid)) &&
-        get(/databases/(default)/documents/profiles/$(request.auth.uid)).data.role == 'teacher' &&
-        request.auth.uid == teacherId;
-      
-      // Students can read assignment files
-      allow read: if request.auth != null && 
-        exists(/databases/(default)/documents/profiles/$(request.auth.uid)) &&
-        get(/databases/(default)/documents/profiles/$(request.auth.uid)).data.role == 'student';
     }
   }
 }

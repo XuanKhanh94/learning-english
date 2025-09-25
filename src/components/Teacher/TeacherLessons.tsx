@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { collection, getDocs, addDoc, query, where, orderBy, serverTimestamp, doc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { uploadToCloudinary } from '../../lib/cloudinary';
 import { useAuth } from '../../hooks/useAuth';
-import { BookOpen, Plus, Edit, Trash2, Calendar, Clock, FileText, Video, Image, Download, Filter, Users, User, Share, UserCheck, Check, X, Lock } from 'lucide-react';
+import { BookOpen, Plus, Edit, Trash2, Calendar, Clock, FileText, Video, Image, Download, Filter, Users, User, Share, UserCheck, Check, X, Lock, Upload, Search } from 'lucide-react';
 import { SkeletonList } from '../Skeletons';
 
 interface Lesson {
@@ -42,6 +43,17 @@ export function TeacherLessons() {
     const [selectedTeachers, setSelectedTeachers] = useState<string[]>([]);
     const [showViewModal, setShowViewModal] = useState(false);
     const [viewingLesson, setViewingLesson] = useState<Lesson | null>(null);
+    const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+    const [uploading, setUploading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // Filter lessons based on search term
+    const filteredLessons = lessons.filter(lesson =>
+        lesson.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (lesson.description && lesson.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (lesson.teacher_name && lesson.teacher_name.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -55,6 +67,43 @@ export function TeacherLessons() {
         share_with_teachers: true, // Mặc định chia sẻ với giáo viên khác
         shared_with_teachers: [] // Danh sách giáo viên được chia sẻ
     });
+
+    // Function to handle file upload
+    const handleFileUpload = async (files: FileList | null) => {
+        if (!files || files.length === 0) return;
+
+        setUploading(true);
+        try {
+            const fileArray = Array.from(files);
+            setUploadedFiles(prev => [...prev, ...fileArray]);
+
+            // Upload files to Cloudinary
+            const uploadPromises = fileArray.map(file =>
+                uploadToCloudinary(file, `lessons/${profile?.id}`)
+            );
+
+            const uploadResults = await Promise.all(uploadPromises);
+
+            // Set the first file as the main file
+            if (uploadResults.length > 0) {
+                setFormData(prev => ({
+                    ...prev,
+                    file_url: uploadResults[0].secure_url,
+                    file_name: fileArray[0].name
+                }));
+            }
+        } catch (error) {
+            console.error('Error uploading files:', error);
+            alert('Lỗi khi upload file. Vui lòng thử lại.');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    // Function to remove uploaded file
+    const removeUploadedFile = (index: number) => {
+        setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    };
 
     // Function to extract YouTube ID from URL
     const extractYouTubeId = (url: string): string => {
@@ -223,6 +272,7 @@ export function TeacherLessons() {
                 shared_with_teachers: []
             });
             setSelectedTeachers([]);
+            setUploadedFiles([]);
             setShowCreateModal(false);
             setShowEditModal(false);
             setEditingLesson(null);
@@ -316,7 +366,7 @@ export function TeacherLessons() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Header Section */}
                     <div className="mb-6 sm:mb-8">
-                        <div className="modern-card p-6 sm:p-8 modern-animate-fade-in-up">
+                        <div className="modern-card-header p-6 sm:p-8 modern-animate-fade-in-up">
                             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                                 <div className="flex items-center gap-3 sm:gap-4">
                                     <div className="p-3 sm:p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg">
@@ -484,28 +534,83 @@ export function TeacherLessons() {
                                         {formData.type === 'document' && (
                                             <>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                        URL tệp
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                        Upload tài liệu
                                                     </label>
-                                                    <input
-                                                        type="url"
-                                                        value={formData.file_url}
-                                                        onChange={(e) => setFormData({ ...formData, file_url: e.target.value })}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                        required
-                                                    />
+                                                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors">
+                                                        <input
+                                                            type="file"
+                                                            multiple
+                                                            onChange={(e) => handleFileUpload(e.target.files)}
+                                                            className="hidden"
+                                                            id="file-upload"
+                                                            accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.xls,.xlsx"
+                                                        />
+                                                        <label
+                                                            htmlFor="file-upload"
+                                                            className="cursor-pointer flex flex-col items-center gap-2"
+                                                        >
+                                                            <Upload className="w-8 h-8 text-gray-400" />
+                                                            <span className="text-sm text-gray-600">
+                                                                {uploading ? 'Đang upload...' : 'Chọn file hoặc kéo thả vào đây'}
+                                                            </span>
+                                                            <span className="text-xs text-gray-500">
+                                                                Hỗ trợ: PDF, DOC, DOCX, PPT, PPTX, TXT, XLS, XLSX
+                                                            </span>
+                                                        </label>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                        Tên tệp
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={formData.file_name}
-                                                        onChange={(e) => setFormData({ ...formData, file_name: e.target.value })}
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                        required
-                                                    />
+
+                                                {/* Hiển thị danh sách file đã upload */}
+                                                {uploadedFiles.length > 0 && (
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                            File đã chọn ({uploadedFiles.length})
+                                                        </label>
+                                                        <div className="space-y-2">
+                                                            {uploadedFiles.map((file, index) => (
+                                                                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <FileText className="w-4 h-4 text-blue-500" />
+                                                                        <span className="text-sm text-gray-700">{file.name}</span>
+                                                                        <span className="text-xs text-gray-500">
+                                                                            ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                                                        </span>
+                                                                    </div>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => removeUploadedFile(index)}
+                                                                        className="text-red-500 hover:text-red-700 transition-colors"
+                                                                    >
+                                                                        <X className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Fallback: Manual URL input */}
+                                                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                                    <p className="text-sm text-yellow-800 mb-2">
+                                                        Hoặc nhập URL tài liệu trực tiếp:
+                                                    </p>
+                                                    <div className="space-y-2">
+                                                        <input
+                                                            type="url"
+                                                            value={formData.file_url}
+                                                            onChange={(e) => setFormData({ ...formData, file_url: e.target.value })}
+                                                            placeholder="https://example.com/document.pdf"
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                                        />
+                                                        <input
+                                                            type="text"
+                                                            value={formData.file_name}
+                                                            onChange={(e) => setFormData({ ...formData, file_name: e.target.value })}
+                                                            placeholder="Tên tài liệu"
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                                        />
+                                                    </div>
                                                 </div>
                                             </>
                                         )}
@@ -693,28 +798,83 @@ export function TeacherLessons() {
                                     {formData.type === 'document' && (
                                         <>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    URL tệp
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                    Upload tài liệu
                                                 </label>
-                                                <input
-                                                    type="url"
-                                                    value={formData.file_url}
-                                                    onChange={(e) => setFormData({ ...formData, file_url: e.target.value })}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                    required
-                                                />
+                                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-500 transition-colors">
+                                                    <input
+                                                        type="file"
+                                                        multiple
+                                                        onChange={(e) => handleFileUpload(e.target.files)}
+                                                        className="hidden"
+                                                        id="file-upload-edit"
+                                                        accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.xls,.xlsx"
+                                                    />
+                                                    <label
+                                                        htmlFor="file-upload-edit"
+                                                        className="cursor-pointer flex flex-col items-center gap-2"
+                                                    >
+                                                        <Upload className="w-6 h-6 text-gray-400" />
+                                                        <span className="text-sm text-gray-600">
+                                                            {uploading ? 'Đang upload...' : 'Chọn file mới'}
+                                                        </span>
+                                                        <span className="text-xs text-gray-500">
+                                                            Hỗ trợ: PDF, DOC, DOCX, PPT, PPTX, TXT, XLS, XLSX
+                                                        </span>
+                                                    </label>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                    Tên tệp
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={formData.file_name}
-                                                    onChange={(e) => setFormData({ ...formData, file_name: e.target.value })}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                    required
-                                                />
+
+                                            {/* Hiển thị danh sách file đã upload */}
+                                            {uploadedFiles.length > 0 && (
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                        File đã chọn ({uploadedFiles.length})
+                                                    </label>
+                                                    <div className="space-y-2">
+                                                        {uploadedFiles.map((file, index) => (
+                                                            <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border">
+                                                                <div className="flex items-center gap-2">
+                                                                    <FileText className="w-4 h-4 text-blue-500" />
+                                                                    <span className="text-sm text-gray-700">{file.name}</span>
+                                                                    <span className="text-xs text-gray-500">
+                                                                        ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                                                    </span>
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => removeUploadedFile(index)}
+                                                                    className="text-red-500 hover:text-red-700 transition-colors"
+                                                                >
+                                                                    <X className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Fallback: Manual URL input */}
+                                            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                                <p className="text-sm text-yellow-800 mb-2">
+                                                    Hoặc nhập URL tài liệu trực tiếp:
+                                                </p>
+                                                <div className="space-y-2">
+                                                    <input
+                                                        type="url"
+                                                        value={formData.file_url}
+                                                        onChange={(e) => setFormData({ ...formData, file_url: e.target.value })}
+                                                        placeholder="https://example.com/document.pdf"
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={formData.file_name}
+                                                        onChange={(e) => setFormData({ ...formData, file_name: e.target.value })}
+                                                        placeholder="Tên tài liệu"
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                                    />
+                                                </div>
                                             </div>
                                         </>
                                     )}
@@ -815,6 +975,22 @@ export function TeacherLessons() {
                         </div>
                     )}
 
+                    {/* Search Bar */}
+                    {lessons.length > 0 && (
+                        <div className="mb-6">
+                            <div className="relative max-w-md">
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                <input
+                                    type="text"
+                                    placeholder="Tìm kiếm bài giảng theo tiêu đề, mô tả hoặc tác giả..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                />
+                            </div>
+                        </div>
+                    )}
+
                     {lessons.length === 0 ? (
                         <div className="modern-card p-12 text-center modern-animate-fade-in-up">
                             <div className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-full w-24 h-24 mx-auto mb-8 flex items-center justify-center">
@@ -849,9 +1025,26 @@ export function TeacherLessons() {
                                 Tạo bài giảng đầu tiên
                             </button>
                         </div>
+                    ) : filteredLessons.length === 0 && searchTerm ? (
+                        <div className="modern-card p-12 text-center modern-animate-fade-in-up">
+                            <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-full w-24 h-24 mx-auto mb-8 flex items-center justify-center">
+                                <Search className="w-12 h-12 text-gray-500" />
+                            </div>
+                            <h3 className="modern-heading-2 mb-4">Không tìm thấy bài giảng nào</h3>
+                            <p className="modern-text-body text-gray-600 mb-8 max-w-md mx-auto">
+                                Không có bài giảng nào khớp với từ khóa "{searchTerm}"
+                            </p>
+                            <button
+                                onClick={() => setSearchTerm('')}
+                                className="modern-btn modern-btn-secondary"
+                            >
+                                <X className="w-5 h-5" />
+                                Xóa bộ lọc
+                            </button>
+                        </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                            {lessons.map((lesson) => (
+                            {filteredLessons.map((lesson) => (
                                 <div key={lesson.id} className="modern-card lesson-card modern-animate-fade-in-scale lesson-card-hover group cursor-pointer" onClick={() => handleViewLesson(lesson)}>
                                     <div className="lesson-card-content">
                                         {/* Video/Media Section - Moved to top */}

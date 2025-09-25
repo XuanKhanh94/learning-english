@@ -559,7 +559,7 @@ export function SubmissionManagement({ showOnlyPending = false }: SubmissionMana
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
-          <div className="modern-card-header p-6 sm:p-8 modern-animate-fade-in-up">
+          <div className="modern-card p-6 sm:p-8 modern-animate-fade-in-up">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="flex items-center gap-3 sm:gap-4">
                 <div className="p-3 sm:p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg">

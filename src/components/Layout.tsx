@@ -121,8 +121,8 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
       case 'teacher':
         return [
           { id: 'dashboard', label: 'Tổng quan', icon: BookOpen },
-          { id: 'assignments', label: 'Bài tập của tôi', icon: FileText },
-          { id: 'create-assignment', label: 'Tạo bài tập', icon: Upload },
+          { id: 'assignments', label: 'Quản lý bài tập', icon: FileText },
+          { id: 'class-management', label: 'Lớp học', icon: Users },
           { id: 'lessons', label: 'Bài giảng', icon: BookOpen },
           { id: 'submissions', label: 'Bài nộp', icon: Download },
         ];
@@ -438,30 +438,31 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col lg:flex-row overflow-hidden">
-      {/* Main Content */}
+      {/* Main Content - Scrollable */}
       <div className="flex-1 overflow-y-auto scrollbar-hide">
         <div className="p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </div>
 
-      {/* Sidebar - Fixed */}
-      <div className="w-full lg:w-64 modern-card flex-shrink-0 h-auto lg:h-full overflow-y-auto modern-scrollbar border-t lg:border-t-0 lg:border-l">
-        <div className="p-4 sm:p-6 border-b">
+      {/* Sidebar - Fixed on Right */}
+      <div className="w-full lg:w-80 modern-card-header flex-shrink-0 h-auto lg:h-full overflow-y-auto overflow-x-hidden modern-scrollbar border-t lg:border-t-0 lg:border-l">
+        {/* Header Section - Logo & App Info */}
+        <div className="p-4 sm:p-6 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
               <BookOpen className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
             </div>
             <div>
-              <h1 className="modern-heading-3">Học và học</h1>
-              <p className="modern-text-muted">Học trực tuyến</p>
+              <h1 className="modern-heading-3 text-gray-800">Học và học</h1>
+              <p className="modern-text-muted text-gray-600">Hệ thống học trực tuyến</p>
             </div>
           </div>
         </div>
 
         {/* User Info */}
         <div className="p-3 sm:p-4 border-b">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
             {/* Notifications */}
             <div className="relative" ref={notificationRef}>
               <button
@@ -478,9 +479,9 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
 
               {/* Notifications Dropdown */}
               {showNotifications && (
-                <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-lg shadow-lg border z-50">
-                  <div className="p-3 border-b flex items-center justify-between">
-                    <h3 className="font-medium text-gray-900">Thông báo mới</h3>
+                <div className="absolute top-full left-0 mt-2 w-72 max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-xl border border-gray-200 z-[9999]">
+                  <div className="p-3 border-b border-gray-100 flex items-center justify-between bg-gray-50 rounded-t-lg">
+                    <h3 className="font-medium text-gray-900 text-sm">Thông báo mới</h3>
                     {unreadCount > 0 && (
                       <button
                         onClick={markAllAsRead}
@@ -507,15 +508,15 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
             </div>
 
             {/* User Dropdown */}
-            <div className="relative" ref={dropdownRef}>
+            <div className="relative flex-1" ref={dropdownRef}>
               <button
                 onClick={toggleDropdown}
-                className="flex items-center gap-2 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                className="flex items-center gap-2 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors w-full"
               >
                 <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center">
                   <User className="w-3 h-3 text-gray-600" />
                 </div>
-                <div className="text-left">
+                <div className="text-left flex-1">
                   <p className="text-sm font-medium text-gray-900">{profile?.full_name}</p>
                   <p className="text-xs text-gray-500">{roleLabel}</p>
                 </div>
@@ -524,7 +525,7 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
 
               {/* User Dropdown Menu */}
               {showDropdown && (
-                <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border z-50">
+                <div className="absolute top-full right-0 mt-2 w-48 max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-xl border border-gray-200 z-[9999]">
                   <div className="p-2">
                     <button
                       onClick={handleSignOut}
@@ -540,9 +541,10 @@ export const Layout = React.memo(function Layout({ children, activeTab, onTabCha
           </div>
         </div>
 
-        {/* Menu */}
-        <nav className="p-3 sm:p-4">
-          <div className="flex flex-row lg:flex-col gap-1 sm:gap-2 overflow-x-auto lg:overflow-x-visible">
+        {/* Navigation Menu Section */}
+        <nav className="p-4">
+          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-3">Điều hướng</h3>
+          <div className="flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible">
             {menuItems.map((item) => (
               <MenuItem
                 key={item.id}

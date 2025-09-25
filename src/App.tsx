@@ -16,8 +16,8 @@ const UserManagement = React.lazy(() =>
   }))
 );
 
-const CreateAssignment = React.lazy(() =>
-  import('./components/Teacher/CreateAssignment')
+const ClassManagement = React.lazy(() =>
+  import('./components/Teacher/ClassManagement')
 );
 
 const TeacherLessons = React.lazy(() =>
@@ -55,6 +55,7 @@ const SubmissionManagement = React.lazy(() =>
     default: module.SubmissionManagement
   }))
 );
+
 
 // Loading component -> Skeletons
 const LoadingSpinner = React.memo(() => <SkeletonList count={6} />);
@@ -112,10 +113,10 @@ function App() {
               <TeacherAssignments />
             </Suspense>
           );
-        case 'create-assignment':
+        case 'class-management':
           return (
             <Suspense fallback={<LoadingSpinner />}>
-              <CreateAssignment />
+              <ClassManagement />
             </Suspense>
           );
         case 'lessons':
